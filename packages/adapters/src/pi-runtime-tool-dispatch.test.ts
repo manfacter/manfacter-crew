@@ -1024,15 +1024,12 @@ describe("Pi connector tool dispatch", () => {
     const spawnBotTool = builtinAgentTools.find((tool) => tool.name === "spawn_bot");
     if (!spawnBotTool) throw new Error("missing spawn_bot");
     fakeAgentState.invoke = {
-      name: "use_tool",
+      name: "spawn_bot",
       args: {
-        name: "spawn_bot",
-        arguments: {
-          name: "Scout",
-          description: "Finds venues.",
-          instructions: "Ask before booking anything.",
-          computer_mode: "team",
-        },
+        name: "Scout",
+        description: "Finds venues.",
+        instructions: "Ask before booking anything.",
+        computer_mode: "team",
       },
     };
     const executeTool = vi.fn(async () => ({ ok: true }));
@@ -1074,6 +1071,44 @@ describe("Pi connector tool dispatch", () => {
     );
   });
 
+  it.each(["message_bot", "handoff_to_bot"])(
+    "dispatches a small set's %s directly through the normal executor",
+    async (name) => {
+      const tool = builtinAgentTools.find((candidate) => candidate.name === name)!;
+      const args = {
+        confirm_name: "CRM analyst",
+        message: "Continue the synthetic case with the verified record IDs.",
+      };
+      fakeAgentState.invoke = { name, args };
+      const executeTool = vi.fn(async () => ({ ok: true }));
+      for await (const _event of new PiAgentRuntime().run(
+        {
+          botId: "b",
+          threadId: "t",
+          runId: "direct-team",
+          prompt: "Hand off the next stage",
+          instructions: "",
+          history: [],
+          tools: [tool],
+          model: { provider: "test", id: "dispatch-test-model" },
+          executeTool,
+        },
+        { signal: new AbortController().signal },
+      )) {
+        // Exhaust the runtime so the normal tool gateway receives the call.
+      }
+      expect(fakeAgentState.tools.map((item) => item.name)).toContain(name);
+      expect(fakeAgentState.tools.map((item) => item.name)).not.toContain("use_tool");
+      expect(executeTool).toHaveBeenCalledWith(
+        name,
+        args,
+        JSON.stringify(["pi-tool", "main", "call-1"]),
+        undefined,
+        { onShellStillRunning: expect.any(Function) },
+      );
+    },
+  );
+
   it("passes update_bot's read offset through the use_tool wrapper", async () => {
     const updateBotTool = builtinAgentTools.find((tool) => tool.name === "update_bot");
     if (!updateBotTool) throw new Error("missing update_bot");
@@ -1092,8 +1127,8 @@ describe("Pi connector tool dispatch", () => {
         prompt: "read the next page of my instructions",
         instructions: "",
         history: [],
-        // A deferred tool exposes use_tool, through which the model names update_bot.
-        tools: [updateBotTool, scheduleCancelTool],
+        // A large granted set retains the wrapper, including access to listed core tools.
+        tools: builtinAgentTools,
         model: { provider: "test", id: "dispatch-test-model" },
         executeTool,
       },
@@ -1158,8 +1193,9 @@ describe("Pi connector tool dispatch", () => {
     // the row, so the bot reports "no schedules" for a reminder it just made.
     expect(modes.get("schedule_create")).toBe("sequential");
     expect(modes.get("schedule_list")).toBe("sequential");
-    // schedule_cancel is deferred, so the use_tool that runs it is sequential.
-    expect(modes.get("use_tool")).toBe("sequential");
+    // A small set exposes cancellation directly and retains its sequencing.
+    expect(modes.get("schedule_cancel")).toBe("sequential");
+    expect(modes.has("use_tool")).toBe(false);
     expect(modes.get("remember")).toBe("sequential");
     // Two code requests in one batch would each wait on a card that one answer approves.
     expect(modes.get("request_secret")).toBe("sequential");
@@ -2652,8 +2688,8 @@ describe("Pi connector tool dispatch", () => {
       truncated: false,
     };
     fakeAgentState.invoke = {
-      name: "use_tool",
-      args: { name: "list_fleet", arguments: { bot_id: "child" } },
+      name: "list_fleet",
+      args: { bot_id: "child" },
     };
     const runtime = new PiAgentRuntime();
 

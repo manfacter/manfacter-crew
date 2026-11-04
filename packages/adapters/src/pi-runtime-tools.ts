@@ -23,7 +23,13 @@ import {
   loginFieldLabelsArgument,
   oneTimeCodeArgument,
 } from "./bot-secrets.js";
-import { FIND_TOOL, findTools, partitionTools, USE_TOOL } from "./builtin-tool-bridge.js";
+import {
+  FIND_TOOL,
+  findTools,
+  isDeferredTool,
+  partitionTools,
+  USE_TOOL,
+} from "./builtin-tool-bridge.js";
 import { shortenToolResultText } from "./context-selection.js";
 import type { PiAgentRuntimeOptions } from "./pi-runtime.js";
 import { COMPUTER_MODE_TOOLS } from "./pi-runtime-computer-mode.js";
@@ -325,7 +331,9 @@ function toAgentTool(
     // exists. Pi runs the whole batch in order when any call in it is
     // sequential. Remember also needs this to avoid competing revision writes, and request_secret
     // so a sibling request cannot start after one pauses for its card and share its answer.
-    ...(SCHEDULE_TOOL_NAMES.has(tool.name) ||
+    // Small direct sets retain the sequencing that their deferred wrapper provided.
+    ...(isDeferredTool(tool.name) ||
+    SCHEDULE_TOOL_NAMES.has(tool.name) ||
     tool.name === "remember" ||
     tool.name === "request_secret"
       ? { executionMode: "sequential" as const }

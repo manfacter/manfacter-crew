@@ -5,6 +5,8 @@ COPY packages/auth/src/index.ts /app/packages/auth/src/index.ts
 COPY apps/api/src/env.ts /app/apps/api/src/env.ts
 COPY apps/api/src/app.ts /app/apps/api/src/app.ts
 COPY packages/adapters/src/auto-review.ts /app/packages/adapters/src/auto-review.ts
+COPY packages/adapters/src/builtin-tool-bridge.ts /app/packages/adapters/src/builtin-tool-bridge.ts
+COPY packages/adapters/src/pi-runtime-tools.ts /app/packages/adapters/src/pi-runtime-tools.ts
 COPY apps/web/public/crew-host-shell.* /app/apps/web/dist/
 WORKDIR /app/apps/api
 RUN node ../../scripts/build-server.mjs src/index.ts

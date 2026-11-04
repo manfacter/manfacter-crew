@@ -20,6 +20,8 @@ For a slow local approval checker, `RAKAZO_AUTO_REVIEW_PROVIDER=local` permits a
 
 The host application can connect its scoped CRM commands through Rakazo's existing MCP settings. The retired structured sales runtime does not drive the bots. Creating a bot or discussing a plan must not be represented as executing it in the CRM: only confirmed tool results and native records establish that.
 
+Small granted tool sets use the existing direct-tool limit instead of requiring discovery wrappers. This makes team messaging and handoffs directly callable while retaining the same executor, approvals and sequential execution. Larger catalogs keep the original lazy discovery behavior; this does not grant additional tools.
+
 ## Verification
 
 Offline checks cover strict assertions, signatures, lifetimes and CSP ancestry. Live synthetic protocol checks cover replay, forged assertions, tenant separation, disabled signup, HttpOnly cookies and expiration during activity. A separate real-browser check verifies entry through the existing host session, bot creation and chat persistence. These checks do not establish unattended 24-hour reliability or sales-content quality.

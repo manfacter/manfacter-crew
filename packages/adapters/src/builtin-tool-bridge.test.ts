@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { builtinAgentTools } from "./builtin-tools.js";
+import { DIRECT_TOOL_LIMIT } from "./lazy-tool-catalog.js";
 import {
   CORE_BUILTIN_TOOL_NAMES,
   FIND_TOOL,
@@ -28,6 +30,25 @@ const definitionBytes = (tools: typeof ownerChat) =>
   );
 
 describe("built-in tool bridge", () => {
+  it("exposes a small granted team tool set directly, without discovery wrappers", () => {
+    const granted = builtinAgentTools.filter((tool) =>
+      ["message_bot", "handoff_to_bot", "task_catalog"].includes(tool.name),
+    );
+    expect(granted).toHaveLength(3);
+    expect(partitionTools(granted)).toEqual({ listed: granted, deferred: [] });
+  });
+
+  it("keeps the existing lazy catalog above the shared direct-tool limit", () => {
+    const deferred = builtinAgentTools
+      .filter((tool) => !CORE_BUILTIN_TOOL_NAMES.has(tool.name))
+      .slice(0, DIRECT_TOOL_LIMIT + 1);
+    expect(deferred).toHaveLength(DIRECT_TOOL_LIMIT + 1);
+    expect(partitionTools(deferred.slice(0, DIRECT_TOOL_LIMIT))).toEqual({
+      listed: deferred.slice(0, DIRECT_TOOL_LIMIT),
+      deferred: [],
+    });
+    expect(partitionTools(deferred).deferred).toEqual(deferred);
+  });
   it("lists a pinned tool set within a byte budget on an owner chat run", () => {
     const { listed, deferred } = partitionTools(ownerChat);
     expect(listed.map((tool) => tool.name).sort()).toEqual([

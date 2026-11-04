@@ -3,6 +3,7 @@ import { FLEET_TOOL_NAMES } from "@rakazo/contracts";
 import type { CatalogEntry } from "./lazy-tool-catalog.js";
 import {
   catalogEntries,
+  DIRECT_TOOL_LIMIT,
   formatNameIndexText,
   groupedNames,
   rankCatalogEntries,
@@ -76,11 +77,12 @@ export function isDeferredTool(name: string): boolean {
   return BUILTIN_AGENT_TOOL_NAMES.has(name) && !CORE_BUILTIN_TOOL_NAMES.has(name);
 }
 
-/** Splits a run's offered tools into the ones listed to the model and the deferred built-ins. */
+/** Small granted sets stay direct; large sets retain the existing lazy built-in catalog. */
 export function partitionTools(tools: readonly ConnectorTool[]): {
   listed: ConnectorTool[];
   deferred: ConnectorTool[];
 } {
+  if (tools.length <= DIRECT_TOOL_LIMIT) return { listed: [...tools], deferred: [] };
   const deferred = tools.filter((tool) => isDeferredTool(tool.name));
   const listed = tools.filter((tool) => !isDeferredTool(tool.name));
   return { listed: deferred.length ? [...listed, ...bridgeTools(deferred)] : listed, deferred };
