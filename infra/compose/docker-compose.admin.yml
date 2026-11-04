@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
-    mem_limit: 10g
+    mem_limit: 12g
     cpus: 8
     pids_limit: 128
     environment:
