@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
-    mem_limit: 6g
-    cpus: 4
+    mem_limit: 10g
+    cpus: 8
     pids_limit: 128
     environment:
       HOME: /tmp
@@ -30,6 +30,8 @@ services:
     profiles: [computers]
   api:
     image: manfacter/crew:local
+    extra_hosts:
+      - "${CREW_ADMIN_HOST:?Set CREW_ADMIN_HOST}:${CREW_ADMIN_IP:?Set CREW_ADMIN_IP}"
     mem_limit: 768m
     networks: [app, data, inference]
     depends_on: !override
@@ -40,7 +42,10 @@ services:
       migrate:
         condition: service_completed_successfully
   worker:
+    image: manfacter/crew:local
     mem_limit: 768m
+    extra_hosts:
+      - "${CREW_ADMIN_HOST:?Set CREW_ADMIN_HOST}:${CREW_ADMIN_IP:?Set CREW_ADMIN_IP}"
     networks: [app, data, inference]
     depends_on: !override
       postgres:

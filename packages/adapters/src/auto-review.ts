@@ -58,7 +58,8 @@ export function autoReviewTimeoutMs(env: NodeJS.ProcessEnv = process.env): numbe
   const raw = env.RAKAZO_AUTO_REVIEW_TIMEOUT_MS?.trim();
   if (!raw) return DEFAULT_TIMEOUT_MS;
   const value = Number(raw);
-  if (!Number.isFinite(value) || value < 200 || value > 30_000) return DEFAULT_TIMEOUT_MS;
+  const maximum = env.RAKAZO_AUTO_REVIEW_PROVIDER?.trim() === LOCAL_PROVIDER_ID ? 300_000 : 30_000;
+  if (!Number.isFinite(value) || value < 200 || value > maximum) return DEFAULT_TIMEOUT_MS;
   return Math.floor(value);
 }
 

@@ -106,6 +106,65 @@ export function verifyHostSessionAssertion(
   };
 }
 
+function hostUserId(config: HostSessionConfig, subject: string) {
+  return `hs_${createHash("sha256").update(`${config.origin}:${subject}`).digest("hex").slice(0, 32)}`;
+}
+
+async function consumeHostAssertion(
+  prisma: PrismaClient,
+  config: HostSessionConfig,
+  value: unknown,
+) {
+  const claims = verifyHostSessionAssertion(value, config);
+  await prisma.verification.deleteMany({
+    where: { identifier: "host-session-used", expiresAt: { lt: new Date() } },
+  });
+  // The existing primary key makes one-use consumption atomic across API processes.
+  try {
+    await prisma.verification.create({
+      data: {
+        id: `host-${createHash("sha256").update(claims.jti).digest("hex")}`,
+        identifier: "host-session-used",
+        value: "used",
+        expiresAt: new Date(claims.exp * 1000),
+      },
+    });
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    )
+      throw invalid();
+    throw error;
+  }
+  return claims;
+}
+
+export async function readHostActivity(
+  prisma: PrismaClient,
+  config: HostSessionConfig,
+  assertion: unknown,
+) {
+  const claims = await consumeHostAssertion(prisma, config, assertion);
+  const run = await prisma.run.findFirst({
+    where: {
+      status: "running",
+      leaseExpiresAt: { gt: new Date() },
+      bot: {
+        archivedAt: null,
+        space: {
+          deletingAt: null,
+          memberships: { some: { userId: hostUserId(config, claims.sub) } },
+        },
+      },
+    },
+    select: { id: true },
+  });
+  return { working: run !== null };
+}
+
 export function hostSession(prisma: PrismaClient, config: HostSessionConfig) {
   return {
     id: "host-session",
@@ -114,6 +173,18 @@ export function hostSession(prisma: PrismaClient, config: HostSessionConfig) {
         "/host-session/config",
         { method: "GET" },
         async (ctx) => ctx.json({ origin: config.origin }),
+      ),
+      hostActivity: createAuthEndpoint(
+        "/host-activity",
+        { method: "POST" },
+        async (ctx) => {
+          const body = ctx.body as { assertion?: unknown } | undefined;
+          if (!body || Object.keys(body).join() !== "assertion")
+            throw invalid();
+          return ctx.json(
+            await readHostActivity(prisma, config, body.assertion),
+          );
+        },
       ),
       hostSession: createAuthEndpoint(
         "/host-session",
@@ -126,28 +197,12 @@ export function hostSession(prisma: PrismaClient, config: HostSessionConfig) {
           const body = ctx.body as { assertion?: unknown } | undefined;
           if (!body || Object.keys(body).join() !== "assertion")
             throw invalid();
-          const claims = verifyHostSessionAssertion(body.assertion, config);
-          // The existing primary key makes one-use consumption atomic across API processes.
-          try {
-            await prisma.verification.create({
-              data: {
-                id: `host-${createHash("sha256").update(claims.jti).digest("hex")}`,
-                identifier: "host-session-used",
-                value: "used",
-                expiresAt: new Date(claims.exp * 1000),
-              },
-            });
-          } catch (error) {
-            if (
-              error &&
-              typeof error === "object" &&
-              "code" in error &&
-              error.code === "P2002"
-            )
-              throw invalid();
-            throw error;
-          }
-          const userId = `hs_${createHash("sha256").update(`${config.origin}:${claims.sub}`).digest("hex").slice(0, 32)}`;
+          const claims = await consumeHostAssertion(
+            prisma,
+            config,
+            body.assertion,
+          );
+          const userId = hostUserId(config, claims.sub);
           // Internal aliases never claim a person's mailbox or link an existing email account.
           await prisma.user.upsert({
             where: { id: userId },

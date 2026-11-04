@@ -150,6 +150,26 @@ describe("isAutoReviewCheckerConfigured", () => {
 });
 
 describe("autoReviewTimeoutMs", () => {
+  it("accepts a bounded slow local checker without changing cloud limits or decisions", () => {
+    expect(
+      autoReviewTimeoutMs({
+        RAKAZO_AUTO_REVIEW_PROVIDER: "local",
+        RAKAZO_AUTO_REVIEW_TIMEOUT_MS: "180000",
+      }),
+    ).toBe(180_000);
+    expect(
+      autoReviewTimeoutMs({
+        RAKAZO_AUTO_REVIEW_PROVIDER: "local",
+        RAKAZO_AUTO_REVIEW_TIMEOUT_MS: "300001",
+      }),
+    ).toBe(10_000);
+    expect(
+      autoReviewTimeoutMs({
+        RAKAZO_AUTO_REVIEW_PROVIDER: "other-provider",
+        RAKAZO_AUTO_REVIEW_TIMEOUT_MS: "180000",
+      }),
+    ).toBe(10_000);
+  });
   it("defaults to 10000 and rejects bad values", () => {
     expect(autoReviewTimeoutMs({})).toBe(10_000);
     expect(autoReviewTimeoutMs({ RAKAZO_AUTO_REVIEW_TIMEOUT_MS: "2000" })).toBe(2_000);
@@ -527,7 +547,7 @@ describe("runAutoReviewJudge timeout", () => {
       }),
     ).resolves.toMatchObject({ decision: "error", reason: "Checker failed." });
     expect(warn).toHaveBeenCalledExactlyOnceWith(
-      `[auto-review] checker openrouter/x failed: Error: [redacted] [redacted] us ${"x".repeat(167)}â€¦`,
+      `[auto-review] checker openrouter/x failed: Error: [redacted] [redacted] us ${"x".repeat(167)}…`,
     );
   });
 
