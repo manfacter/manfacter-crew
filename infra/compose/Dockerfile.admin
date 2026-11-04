@@ -1,0 +1,10 @@
+FROM ghcr.io/elie222/rakazo/app@sha256:05f9098f6f8a67fafc3e9681b880ed835b3945b0f378b6562392e48908f2af22
+USER root
+COPY packages/auth/src/host-session.ts /app/packages/auth/src/host-session.ts
+COPY packages/auth/src/index.ts /app/packages/auth/src/index.ts
+COPY apps/api/src/env.ts /app/apps/api/src/env.ts
+COPY apps/api/src/app.ts /app/apps/api/src/app.ts
+COPY apps/web/public/crew-host-shell.* /app/apps/web/dist/
+WORKDIR /app/apps/api
+RUN node ../../scripts/build-server.mjs src/index.ts
+USER 1000:1000

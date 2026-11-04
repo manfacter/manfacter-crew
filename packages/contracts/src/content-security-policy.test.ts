@@ -10,6 +10,7 @@ import {
   HTML_VIEWER_PATH,
   parseContentSecuritySources,
   parseCrispWebsiteId,
+  parseFrameAncestors,
 } from "./content-security-policy.js";
 
 function directives(policy: string) {
@@ -22,6 +23,41 @@ function directives(policy: string) {
 }
 
 describe("app content security policy", () => {
+  it("permits embedding only in configured exact origins, retaining closed defaults", () => {
+    expect(parseFrameAncestors(undefined)).toEqual([]);
+    const origins = parseFrameAncestors(
+      "http://localhost:3000 https://admin.example.com,http://localhost:3000",
+    );
+    expect(origins).toEqual(["http://localhost:3000", "https://admin.example.com"]);
+    expect(
+      directives(appContentSecurityPolicy({ frameAncestors: origins })).get("frame-ancestors"),
+    ).toEqual(["'self'", ...origins]);
+    expect(contentSecurityPolicyFor(HTML_VIEWER_PATH, undefined, undefined, origins)).toContain(
+      "frame-ancestors 'self' http://localhost:3000 https://admin.example.com",
+    );
+    const screen = {
+      screen: "default-src 'none'; frame-ancestors 'self'",
+      runtime: "default-src 'none'; sandbox",
+    };
+    expect(contentSecurityPolicyFor(COMPUTER_SCREEN_PATH, undefined, screen, origins)).toContain(
+      "frame-ancestors 'self' http://localhost:3000",
+    );
+    expect(contentSecurityPolicyFor(COMPUTER_SCREEN_RUNTIME_PATH, undefined, screen, origins)).toBe(
+      screen.runtime,
+    );
+    for (const source of [
+      "*",
+      "https://*.example.com",
+      "http://admin.example.com",
+      "https://a.example/x",
+      "https://user@a.example",
+      "https://a.example?x=1",
+      "https://a.example#x",
+      "javascript:alert(1)",
+    ]) {
+      expect(() => parseFrameAncestors(source)).toThrow();
+    }
+  });
   const policy = directives(APP_CONTENT_SECURITY_POLICY);
 
   it("runs only same-origin script files", () => {

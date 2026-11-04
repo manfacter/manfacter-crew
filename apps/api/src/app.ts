@@ -541,6 +541,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     devices: userDevices ?? new UserDevices({ prisma, forwardSecret: userDeviceSecret }),
   };
   const auth = createAuth(prisma, {
+    hostSession: env.hostSession,
     analytics,
     passwordAuth: env.passwordAuth,
     breachedPasswordCheck: env.breachedPasswordCheck,

@@ -41,6 +41,9 @@ import { hasRecentIdentityConfirmation, identityConfirmation } from "./identity-
 import type { OidcConfig } from "./oidc.js";
 import { isCurrentOidcAccount, oidcDiscovery } from "./oidc.js";
 import { passkeyRelyingParty } from "./passkey.js";
+import { hostSession, HOST_SESSION_SECONDS } from "./host-session.js";
+import type { HostSessionConfig } from "./host-session.js";
+export { hostSessionConfig } from "./host-session.js";
 import type { TokenKey } from "./token-storage.js";
 import { encryptStoredOAuthTokens, openIdToken, sealIdToken } from "./token-storage.js";
 
@@ -64,6 +67,7 @@ export { referralEmail } from "./referral-email.js";
 export { welcomeEmail } from "./welcome-email.js";
 
 export interface AuthEnv {
+  hostSession?: HostSessionConfig;
   analytics?: ProductAnalytics;
   passwordAuth?: boolean;
   /** Opt-in: rejects new passwords found in Have I Been Pwned. Calls an outside service. */
@@ -154,7 +158,7 @@ export function authRateLimitOptions(nodeEnv = process.env.NODE_ENV) {
 }
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
-  if (env.passwordAuth === false && !env.oidc)
+  if (env.passwordAuth === false && !env.oidc && !env.hostSession)
     throw new Error("Password auth requires OIDC when disabled");
   // A failed lookup still sends the email, in the asking browser's language.
   const emailLocaleOf: EmailLocaleOf = async (account, headers) => {
@@ -237,6 +241,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
     },
     rateLimit: authRateLimitOptions(),
     advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
+    ...(env.hostSession ? {session:{expiresIn:HOST_SESSION_SECONDS,updateAge:86400,cookieCache:{enabled:false}}} : {}),
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     emailAndPassword: {
       enabled: env.passwordAuth !== false,
@@ -356,6 +361,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       },
     },
     plugins: [
+      ...(env.hostSession ? [hostSession(prisma,env.hostSession)] : []),
       signedBearer,
       expo(),
       accountSecurity(
@@ -543,6 +549,7 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
                 findSession: async (token: string) => {
                   const session = await findSession(token);
                   if (!session || isMessagingEmail(session.user.email)) return null;
+                    if (env.hostSession && !(await ctx.context.internalAdapter.findAccounts(session.user.id)).some(account => account.providerId === "host-session")) return null;
                   if (session.user.emailVerified) return session;
                   if (env.oidc?.allowSignupBypass) {
                     const accounts = await ctx.context.internalAdapter.findAccounts(

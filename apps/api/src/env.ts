@@ -16,6 +16,7 @@ import {
   telegramBotsFromEnv,
 } from "@rakazo/adapters";
 import type { OidcConfig } from "@rakazo/auth";
+import { hostSessionConfig } from "@rakazo/auth";
 import type { MinimumClientBuilds, NavLink } from "@rakazo/contracts";
 import { parseMinimumClientBuilds, parseNavLinks } from "@rakazo/contracts";
 import { parseCrispWebsiteId } from "@rakazo/contracts/content-security-policy";
@@ -37,6 +38,7 @@ export { resolveCloudAgentProvider, resolveSandboxProvider } from "@rakazo/adapt
 const DEFAULT_WEB_ORIGIN = "http://127.0.0.1:5173";
 
 export interface AppEnv {
+  hostSession?: ReturnType<typeof hostSessionConfig>;
   passwordAuth?: boolean;
   /** Opt-in Have I Been Pwned check for new passwords. Default off: it calls an outside service. */
   breachedPasswordCheck?: boolean;
@@ -207,7 +209,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
       throw new Error(`${key} must be true or false`);
   }
   const passwordAuth = source.AUTH_PASSWORD_ENABLED !== "false";
-  if (!passwordAuth && !issuer)
+  const hostSession = hostSessionConfig(optional(source.HOST_SESSION_SECRET),optional(source.HOST_SESSION_ORIGIN));
+  if (!passwordAuth && !issuer && !hostSession)
     throw new Error("AUTH_PASSWORD_ENABLED=false requires OIDC configuration");
   const oidc =
     issuer && clientId && clientSecret
@@ -228,6 +231,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const cloudAgentProvider = resolveCloudAgentProvider(source);
   const deploymentModel = resolveDeploymentModel(source);
   return {
+    hostSession,
     passwordAuth,
     breachedPasswordCheck: source.AUTH_BREACHED_PASSWORD_CHECK_ENABLED === "true",
     oidc,

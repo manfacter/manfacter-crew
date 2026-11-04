@@ -17,6 +17,7 @@ import {
   contentSecurityPolicyFor,
   parseContentSecuritySources,
   parseCrispWebsiteId,
+  parseFrameAncestors,
 } from "@rakazo/contracts/content-security-policy";
 import {
   safeScreenProxyResponseHeaders,
@@ -499,8 +500,12 @@ export default defineConfig(({ command, mode }) => {
   const desktopStackToken =
     process.env.RAKAZO_DESKTOP_STACK_TOKEN ?? rootEnv.RAKAZO_DESKTOP_STACK_TOKEN ?? "";
   const imageTag = process.env.RAKAZO_IMAGE_TAG ?? rootEnv.RAKAZO_IMAGE_TAG ?? "edge";
+  const embedOrigins = parseFrameAncestors(
+    process.env.RAKAZO_EMBED_ORIGINS ?? rootEnv.RAKAZO_EMBED_ORIGINS,
+  );
   // Invalid origins throw here, so the server refuses to start rather than serve a wider policy.
   const appPolicy = appContentSecurityPolicy({
+    frameAncestors: embedOrigins,
     scriptSrc: parseContentSecuritySources(
       "RAKAZO_CSP_SCRIPT_SRC",
       process.env.RAKAZO_CSP_SCRIPT_SRC ?? rootEnv.RAKAZO_CSP_SCRIPT_SRC,
@@ -543,6 +548,26 @@ export default defineConfig(({ command, mode }) => {
       tailwindcss(),
       rakazoPwa(buildId),
       {
+        name: "host-session-shell",
+        configurePreviewServer(server) {
+          // Auth bootstrap stays under /api so the PWA never replaces or caches it.
+          const files: Record<string, [string, string]> = {
+            "/api/host-shell": ["crew-host-shell.html", "text/html; charset=utf-8"],
+            "/api/host-shell.js": ["crew-host-shell.js", "text/javascript; charset=utf-8"],
+            "/api/host-shell.css": ["crew-host-shell.css", "text/css; charset=utf-8"],
+          };
+          server.middlewares.use((req, res, next) => {
+            const file = files[req.url?.split("?", 1)[0] ?? ""];
+            if (!file) { next(); return; }
+            res.setHeader("content-type", file[1]);
+            res.setHeader("cache-control", "no-store");
+            res.setHeader("x-content-type-options", "nosniff");
+            res.setHeader("content-security-policy", appPolicy);
+            res.end(readFileSync(path.resolve(import.meta.dirname, "dist", file[0])));
+          });
+        },
+      },
+      {
         // Dev keeps React Refresh unrestricted in app pages; screen documents always use CSP.
         name: "rakazo-content-security-policy",
         generateBundle() {
@@ -556,9 +581,9 @@ export default defineConfig(({ command, mode }) => {
             if (pathname.startsWith(COMPUTER_SCREEN_PREFIX)) {
               res.setHeader(
                 "content-security-policy",
-                contentSecurityPolicyFor(pathname, appPolicy, wuyingScreenPolicy)!,
+                contentSecurityPolicyFor(pathname, appPolicy, wuyingScreenPolicy, embedOrigins)!,
               );
-              if (pathname !== COMPUTER_SCREEN_RUNTIME_PATH)
+              if (pathname !== COMPUTER_SCREEN_RUNTIME_PATH && !embedOrigins.length)
                 res.setHeader("x-frame-options", "SAMEORIGIN");
             }
             const asset = Object.hasOwn(wuyingScreenAssets, pathname)
@@ -575,9 +600,14 @@ export default defineConfig(({ command, mode }) => {
         configurePreviewServer(server) {
           server.middlewares.use((req, res, next) => {
             const pathname = req.url?.split("?", 1)[0] ?? "/";
-            if (pathname !== COMPUTER_SCREEN_RUNTIME_PATH)
+            if (pathname !== COMPUTER_SCREEN_RUNTIME_PATH && !embedOrigins.length)
               res.setHeader("x-frame-options", "SAMEORIGIN");
-            const policy = contentSecurityPolicyFor(pathname, appPolicy, wuyingScreenPolicy);
+            const policy = contentSecurityPolicyFor(
+              pathname,
+              appPolicy,
+              wuyingScreenPolicy,
+              embedOrigins,
+            );
             if (policy) {
               res.setHeader("content-security-policy", policy);
               res.setHeader("reporting-endpoints", CSP_REPORTING_ENDPOINTS);

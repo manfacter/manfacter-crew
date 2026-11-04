@@ -58,6 +58,7 @@ function serialize(directives: Record<string, string[]>) {
 export interface ContentSecurityPolicyExtensions {
   scriptSrc?: readonly string[];
   connectSrc?: readonly string[];
+  frameAncestors?: readonly string[];
   /** Allows the Crisp chat widget the paywall loads when `CRISP_WEBSITE_ID` is set. */
   crisp?: boolean;
 }
@@ -113,11 +114,40 @@ export function parseContentSecuritySources(setting: string, value: string | und
   return [...new Set(sources.map((source) => source.toLowerCase()))];
 }
 
+/** Embedding trusts exact origins only; HTTP is limited to local development. */
+export function parseFrameAncestors(value: string | undefined) {
+  return [
+    ...new Set(
+      (value ?? "")
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map((source) => {
+          const url = new URL(source);
+          const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+          if (
+            (url.protocol !== "https:" && !(url.protocol === "http:" && local)) ||
+            url.username ||
+            url.password ||
+            url.pathname !== "/" ||
+            url.search ||
+            url.hash ||
+            url.hostname.includes("*")
+          )
+            throw new Error("RAKAZO_EMBED_ORIGINS requires exact HTTPS or loopback origins");
+          return url.origin;
+        }),
+    ),
+  ];
+}
+
 export function appContentSecurityPolicy(extensions: ContentSecurityPolicyExtensions = {}) {
   const directives: Record<string, string[]> = {
     ...APP_DIRECTIVES,
     "script-src": ["'self'", ...(extensions.scriptSrc ?? [])],
     "connect-src": ["'self'", ...(extensions.connectSrc ?? [])],
+    "frame-ancestors": extensions.frameAncestors?.length
+      ? ["'self'", ...extensions.frameAncestors]
+      : ["'none'"],
   };
   if (extensions.crisp) {
     for (const [name, sources] of Object.entries(CRISP_DIRECTIVES)) {
@@ -140,16 +170,26 @@ export function contentSecurityPolicyFor(
   pathname: string,
   appPolicy = APP_CONTENT_SECURITY_POLICY,
   screenPolicy?: EmbeddedComputerScreenPolicy,
+  frameAncestors: readonly string[] = [],
 ): string | null {
+  const nestedPolicy = (policy: string) =>
+    frameAncestors.length
+      ? policy.replace(
+          "frame-ancestors 'self'",
+          `frame-ancestors 'self' ${frameAncestors.join(" ")}`,
+        )
+      : policy;
   if (
     PASSTHROUGH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   )
     return null;
-  if (pathname === HTML_VIEWER_PATH) return HTML_VIEWER_CONTENT_SECURITY_POLICY;
+  if (pathname === HTML_VIEWER_PATH) return nestedPolicy(HTML_VIEWER_CONTENT_SECURITY_POLICY);
   // The nested runtime has an opaque ancestor, which cannot match 'self'. Its sandbox
   // policy still prevents access to the app even when visited directly.
   if (screenPolicy && pathname === COMPUTER_SCREEN_RUNTIME_PATH) return screenPolicy.runtime;
   if (pathname.startsWith(COMPUTER_SCREEN_PREFIX))
-    return screenPolicy?.screen ?? "default-src 'none'; sandbox; frame-ancestors 'self'";
+    return nestedPolicy(
+      screenPolicy?.screen ?? "default-src 'none'; sandbox; frame-ancestors 'self'",
+    );
   return appPolicy;
 }

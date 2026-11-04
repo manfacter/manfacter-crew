@@ -1,0 +1,64 @@
+# Layer after docker-compose.images.yml. Private local Admin integration, no host computer tools.
+services:
+  inference:
+    image: ollama/ollama:0.40.12@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b
+    user: "1000:1000"
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 6g
+    cpus: 4
+    pids_limit: 128
+    environment:
+      HOME: /tmp
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MODELS: /models
+      OLLAMA_NO_CLOUD: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_CONTEXT_LENGTH: "16384"
+      OLLAMA_LLM_LIBRARY: cpu
+      CUDA_VISIBLE_DEVICES: "-1"
+    volumes:
+      - ${RAKAZO_MODELS_ROOT:?Set RAKAZO_MODELS_ROOT}:/models:ro
+    networks: [inference]
+  postgres:
+    mem_limit: 384m
+  supervisor:
+    profiles: [computers]
+  computer:
+    profiles: [computers]
+  api:
+    image: manfacter/crew:local
+    mem_limit: 768m
+    networks: [app, data, inference]
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      data-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+  worker:
+    mem_limit: 768m
+    networks: [app, data, inference]
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      data-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+  web:
+    image: manfacter/crew:local
+    environment:
+      RAKAZO_EMBED_ORIGINS: http://localhost:3000
+    volumes:
+      - ${RAKAZO_SOURCE_ROOT:?Set RAKAZO_SOURCE_ROOT}/apps/web/vite.config.ts:/app/apps/web/vite.config.ts:ro
+      - ${RAKAZO_SOURCE_ROOT:?Set RAKAZO_SOURCE_ROOT}/packages/contracts/src/content-security-policy.ts:/app/packages/contracts/src/content-security-policy.ts:ro
+
+networks:
+  inference:
+    internal: true
