@@ -6,7 +6,7 @@ This fork runs the original Rakazo web interface inside an authenticated host ap
 
 Set `HOST_SESSION_SECRET` (at least 64 random characters) and `HOST_SESSION_ORIGIN` on the API only. The host and API share this private signing secret. The assertion expires in at most 30 seconds, binds a host user and session, and has an atomic one-use nonce in the existing Verification table. Accounts are mapped by issuer and subject, never by mailbox; host users do not become deployment administrators.
 
-The shell at `/api/host-shell` accepts assertions only from the configured parent origin and renews the HttpOnly Crew session without reloading the embedded chat. The host renews every 30 seconds. A lease lasts at most 75 seconds, including after host logout if the close message is lost. Password, signup and independent login flows are disabled in this deployment. Opening Crew directly shows the host entry link.
+The shell at `/api/host-shell` accepts assertions only from the configured parent origin and renews the HttpOnly Crew session without reloading the embedded chat. The host renews every 30 seconds. A repeatable hello/ready handshake handles either frame or host finishing first, including development remounts. A lease lasts at most 75 seconds, including after host logout if the close message is lost. Password, signup and independent login flows are disabled in this deployment. Opening Crew directly shows the host entry link.
 
 `RAKAZO_EMBED_ORIGINS` allows exact HTTPS or loopback origins in CSP. Default deployments still deny embedding. The shell uses an `/api` path because the original PWA service worker excludes it from its SPA navigation fallback.
 

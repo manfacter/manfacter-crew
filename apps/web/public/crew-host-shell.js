@@ -28,6 +28,10 @@ function close() {
 }
 window.addEventListener("message", async (event) => {
   if (event.source !== window.parent || event.origin !== origin) return;
+  if (event.data?.type === "crew:hello") {
+    window.parent.postMessage({ type: "crew:ready" }, origin);
+    return;
+  }
   if (event.data?.type === "crew:close") {
     close();
     return;
