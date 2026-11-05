@@ -1,0 +1,85 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Crew persistent production storage and private runtime network",
+  "Parameters": {
+    "VpcId": { "Type": "AWS::EC2::VPC::Id" },
+    "Subnets": { "Type": "List<AWS::EC2::Subnet::Id>" },
+    "DatabaseClass": { "Type": "String", "Default": "db.t4g.small", "AllowedValues": ["db.t4g.small", "db.t4g.medium"] },
+    "DatabaseVersion": { "Type": "String", "Default": "18.6", "AllowedPattern": "18\\.[0-9]+" }
+  },
+  "Resources": {
+    "Cluster": { "Type": "AWS::ECS::Cluster", "Properties": { "ClusterSettings": [{ "Name": "containerInsights", "Value": "enabled" }] } },
+    "Repository": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": { "ImageTagMutability": "IMMUTABLE", "ImageScanningConfiguration": { "ScanOnPush": true }, "EncryptionConfiguration": { "EncryptionType": "AES256" } },
+      "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain"
+    },
+    "Logs": { "Type": "AWS::Logs::LogGroup", "Properties": { "RetentionInDays": 30 }, "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain" },
+    "RuntimeSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": { "GroupDescription": "Crew runtime; ingress is granted by the application stack", "VpcId": { "Ref": "VpcId" } }
+    },
+    "DatabaseSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Crew database accepts only the Crew runtime", "VpcId": { "Ref": "VpcId" },
+        "SecurityGroupIngress": [{ "IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432, "SourceSecurityGroupId": { "Ref": "RuntimeSecurityGroup" } }]
+      }
+    },
+    "DatabaseSubnets": { "Type": "AWS::RDS::DBSubnetGroup", "Properties": { "DBSubnetGroupDescription": "Crew private database", "SubnetIds": { "Ref": "Subnets" } } },
+    "Database": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Snapshot", "UpdateReplacePolicy": "Snapshot",
+      "Properties": {
+        "Engine": "postgres", "EngineVersion": { "Ref": "DatabaseVersion" }, "DBInstanceClass": { "Ref": "DatabaseClass" },
+        "DBName": "crew", "MasterUsername": "crew_owner", "ManageMasterUserPassword": true,
+        "AllocatedStorage": "20", "MaxAllocatedStorage": 100, "StorageType": "gp3", "StorageEncrypted": true,
+        "PubliclyAccessible": false, "DeletionProtection": true, "BackupRetentionPeriod": 7,
+        "CopyTagsToSnapshot": true, "AutoMinorVersionUpgrade": true,
+        "DBSubnetGroupName": { "Ref": "DatabaseSubnets" }, "VPCSecurityGroups": [{ "Ref": "DatabaseSecurityGroup" }],
+        "EnableCloudwatchLogsExports": ["postgresql", "upgrade"]
+      }
+    },
+    "FilesSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Crew encrypted shared files", "VpcId": { "Ref": "VpcId" },
+        "SecurityGroupIngress": [{ "IpProtocol": "tcp", "FromPort": 2049, "ToPort": 2049, "SourceSecurityGroupId": { "Ref": "RuntimeSecurityGroup" } }]
+      }
+    },
+    "Files": {
+      "Type": "AWS::EFS::FileSystem", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Encrypted": true, "BackupPolicy": { "Status": "ENABLED" },
+        "FileSystemPolicy": { "Statement": [{ "Effect": "Deny", "Principal": "*", "Action": "elasticfilesystem:*", "Resource": "*", "Condition": { "Bool": { "aws:SecureTransport": "false" } } }] }
+      }
+    },
+    "FilesAccessPoint": {
+      "Type": "AWS::EFS::AccessPoint",
+      "Properties": { "FileSystemId": { "Ref": "Files" }, "PosixUser": { "Uid": "1000", "Gid": "1000" }, "RootDirectory": { "Path": "/crew", "CreationInfo": { "OwnerUid": "1000", "OwnerGid": "1000", "Permissions": "750" } } }
+    },
+    "FilesMountA": { "Type": "AWS::EFS::MountTarget", "Properties": { "FileSystemId": { "Ref": "Files" }, "SubnetId": { "Fn::Select": [0, { "Ref": "Subnets" }] }, "SecurityGroups": [{ "Ref": "FilesSecurityGroup" }] } },
+    "FilesMountB": { "Type": "AWS::EFS::MountTarget", "Properties": { "FileSystemId": { "Ref": "Files" }, "SubnetId": { "Fn::Select": [1, { "Ref": "Subnets" }] }, "SecurityGroups": [{ "Ref": "FilesSecurityGroup" }] } },
+    "FilesMountC": { "Type": "AWS::EFS::MountTarget", "Properties": { "FileSystemId": { "Ref": "Files" }, "SubnetId": { "Fn::Select": [2, { "Ref": "Subnets" }] }, "SecurityGroups": [{ "Ref": "FilesSecurityGroup" }] } },
+    "RuntimeDatabasePassword": { "Type": "AWS::SecretsManager::Secret", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": { "GenerateSecretString": { "PasswordLength": 48, "ExcludePunctuation": true } } },
+    "SessionSecret": { "Type": "AWS::SecretsManager::Secret", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": { "GenerateSecretString": { "PasswordLength": 80, "ExcludePunctuation": true } } },
+    "HostSessionSecret": { "Type": "AWS::SecretsManager::Secret", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": { "GenerateSecretString": { "PasswordLength": 80, "ExcludePunctuation": true } } },
+    "ContentEncryptionKey": { "Type": "AWS::SecretsManager::Secret", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": { "GenerateSecretString": { "PasswordLength": 64, "ExcludePunctuation": true, "ExcludeUppercase": true, "ExcludeCharacters": "ghijklmnopqrstuvwxyz" } } },
+    "ScreenProxySecret": { "Type": "AWS::SecretsManager::Secret", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": { "GenerateSecretString": { "PasswordLength": 80, "ExcludePunctuation": true } } }
+  },
+  "Outputs": {
+    "Cluster": { "Value": { "Ref": "Cluster" } },
+    "Repository": { "Value": { "Fn::GetAtt": ["Repository", "RepositoryUri"] } },
+    "Logs": { "Value": { "Ref": "Logs" } },
+    "RuntimeSecurityGroup": { "Value": { "Ref": "RuntimeSecurityGroup" } },
+    "DatabaseHost": { "Value": { "Fn::GetAtt": ["Database", "Endpoint.Address"] } },
+    "DatabaseOwnerSecret": { "Value": { "Fn::GetAtt": ["Database", "MasterUserSecret.SecretArn"] } },
+    "RuntimeDatabasePassword": { "Value": { "Ref": "RuntimeDatabasePassword" } },
+    "Files": { "Value": { "Ref": "Files" } },
+    "FilesAccessPoint": { "Value": { "Ref": "FilesAccessPoint" } },
+    "SessionSecret": { "Value": { "Ref": "SessionSecret" } },
+    "HostSessionSecret": { "Value": { "Ref": "HostSessionSecret" } },
+    "ContentEncryptionKey": { "Value": { "Ref": "ContentEncryptionKey" } },
+    "ScreenProxySecret": { "Value": { "Ref": "ScreenProxySecret" } }
+  }
+}
