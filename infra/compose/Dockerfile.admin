@@ -18,6 +18,8 @@ COPY packages/adapters/src/web-ssrf.ts /app/packages/adapters/src/web-ssrf.ts
 COPY packages/adapters/src/builtin-skills.ts /app/packages/adapters/src/builtin-skills.ts
 COPY packages/adapters/src/auto-review.ts /app/packages/adapters/src/auto-review.ts
 COPY packages/adapters/src/builtin-tool-bridge.ts /app/packages/adapters/src/builtin-tool-bridge.ts
+COPY packages/adapters/src/builtin-tools.ts /app/packages/adapters/src/builtin-tools.ts
+COPY packages/adapters/src/group-handoff.ts /app/packages/adapters/src/group-handoff.ts
 COPY packages/adapters/src/pi-runtime-tools.ts /app/packages/adapters/src/pi-runtime-tools.ts
 COPY packages/adapters/src/pi-runtime.ts /app/packages/adapters/src/pi-runtime.ts
 COPY packages/adapters/src/pi-local-provider.ts /app/packages/adapters/src/pi-local-provider.ts

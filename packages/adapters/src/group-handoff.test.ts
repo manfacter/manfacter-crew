@@ -120,19 +120,45 @@ describe("group handoff ownership", () => {
     expect(deps.jobs.enqueue).not.toHaveBeenCalled();
   });
 
-  it("refuses to bounce a handed-off stage straight back to its sender", async () => {
-    const { deps, runCreate } = harness([
-      { kind: "handoff", fromBotId: "bot-b", toBotId: "bot-a", text: "Investigate", hop: 1 },
+  it("returns review corrections to the previous owner within the handoff limit", async () => {
+    const { deps, runCreate, messageCreate } = harness([
+      {
+        kind: "handoff",
+        fromBotId: "bot-b",
+        toBotId: "bot-a",
+        text: "Review the saved draft",
+        hop: 3,
+      },
     ]);
 
     await expect(
       handoffToGroupBot(deps as never, run, "group-1", {
         bot_id: "bot-b",
-        message: "You investigate it",
+        message: "Correct the unsupported source and return the saved revision for review",
+      }),
+    ).resolves.toMatchObject({ ok: true, botId: "bot-b" });
+    expect(runCreate).toHaveBeenCalledOnce();
+    expect(messageCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          blocks: [expect.objectContaining({ kind: "handoff", toBotId: "bot-b", hop: 4 })],
+        }),
+      }),
+    );
+  });
+
+  it("still caps a return to the previous owner when the chain is exhausted", async () => {
+    const { deps, runCreate } = harness([
+      { kind: "handoff", fromBotId: "bot-b", toBotId: "bot-a", text: "Review revision", hop: 6 },
+    ]);
+    await expect(
+      handoffToGroupBot(deps as never, run, "group-1", {
+        bot_id: "bot-b",
+        message: "Another revision",
       }),
     ).resolves.toEqual({
       error:
-        "do not hand this stage back to its sender; post the result in the shared thread instead",
+        "group handoff limit reached for this chain; finish the current stage in the shared thread instead",
     });
     expect(runCreate).not.toHaveBeenCalled();
   });

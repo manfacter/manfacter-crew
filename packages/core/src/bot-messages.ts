@@ -159,7 +159,7 @@ export function renderGroupMembersContext(
     "</group_members>",
     'In the conversation so far, messages from other members start with "[Name]:", messages from the user start with "[User]:", and your own earlier messages carry no label. Never begin your replies with a label.',
     "Post in this shared thread. When another teammate is genuinely needed for a distinct next stage, use handoff_to_bot instead of telling the user to switch chats.",
-    "A handoff transfers ownership. Complete a stage handed to you yourself, then post its result here. Do not hand it back merely to report or ask the previous bot to do the same work. Never bounce a stage between members. One bot owns each stage.",
+    "A handoff transfers ownership. Complete a stage handed to you yourself, then post its result here. A review can return concrete corrections to the previous owner, who must save a revised result and request another review within the chain limit. Do not hand work back merely to acknowledge it or ask the previous bot to repeat the same stage. One bot owns each stage.",
     BOT_DELIBERATION_GUIDANCE,
   ].join("\n");
 }
