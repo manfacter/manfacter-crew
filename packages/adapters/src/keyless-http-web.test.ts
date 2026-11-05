@@ -1,10 +1,11 @@
 import type { AdapterContext } from "@rakazo/adapter-kit";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FakeWebProvider } from "./fake-web.js";
 import {
   extractReadableText,
   KeylessHttpWebProvider,
   parseDuckDuckGoResults,
+  parseRssSearchResults,
 } from "./keyless-http-web.js";
 import {
   clampMaxChars,
@@ -177,6 +178,70 @@ describe("keyless HTTP web provider", () => {
       { title: "Alpha", url: "https://example.test/a", snippet: "Snippet A" },
       { title: "Beta", url: "https://example.test/b", snippet: "Snippet B" },
     ]);
+  });
+
+  it("tries a second public index when the default index finds nothing", async () => {
+    const requests: URL[] = [];
+    const provider = new KeylessHttpWebProvider({
+      fetch: async (input) => {
+        requests.push(new URL(String(input)));
+        return new Response(
+          requests.length === 1
+            ? '<div class="no-results">No results</div>'
+            : '<rss><channel><item><title>Example</title><link>https://example.test/</link><description>Public source</description></item></channel></rss>',
+        );
+      },
+      resolveHostname: publicResolver,
+    });
+    await expect(provider.search({ query: "example industrial", maxResults: 1 }, ctx)).resolves.toEqual([
+      { title: "Example", url: "https://example.test/", snippet: "Public source" },
+    ]);
+    expect(requests.map((url) => url.hostname)).toEqual(["html.duckduckgo.com", "www.bing.com"]);
+    expect(requests.map((url) => url.searchParams.get("q"))).toEqual([
+      "example industrial",
+      "example industrial",
+    ]);
+    expect(requests[1]?.searchParams.get("format")).toBe("rss");
+  });
+
+  it("keeps an explicitly configured empty backend and propagates search failures", async () => {
+    const fetch = vi.fn(async () => new Response("<html></html>"));
+    const provider = new KeylessHttpWebProvider({
+      fetch,
+      resolveHostname: publicResolver,
+      searchBackend: { id: "custom", endpoint: "https://search.example.test/", parse: () => [] },
+    });
+    await expect(provider.search({ query: "example" }, ctx)).resolves.toEqual([]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    fetch.mockImplementation(async () => new Response("Unavailable", { status: 503 }));
+    await expect(provider.search({ query: "example" }, ctx)).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("applies public-address restrictions to the fallback index too", async () => {
+    const fetch = vi.fn(async () => new Response('<div class="no-results">No results</div>'));
+    const provider = new KeylessHttpWebProvider({
+      fetch,
+      resolveHostname: async (host) =>
+        host === "www.bing.com" ? [{ address: "127.0.0.1", family: 4 as const }] : publicResolver(),
+    });
+    await expect(provider.search({ query: "example" }, ctx)).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses capped RSS results without exposing invalid links", () => {
+    const xml = `<rss><channel>
+      <item><title>Unsafe</title><link>javascript:alert(1)</link></item>
+      <item><title>Relative</title><link>/relative</link></item>
+      <item><title>Alpha</title><link>https://example.test/a?b=1&amp;c=2</link><description>Summary</description></item>
+      <item><title>Beta</title><link>https://example.test/b</link></item>
+    </channel></rss>`;
+    expect(parseRssSearchResults(xml, 1)).toEqual([
+      { title: "Alpha", url: "https://example.test/a?b=1&c=2", snippet: "Summary" },
+    ]);
+    expect(parseRssSearchResults("<rss><channel/></rss>", 5)).toEqual([]);
+    expect(() => parseRssSearchResults("<rss>", 5)).toThrow();
   });
 
   it("fetches readable page text with truncation", async () => {

@@ -47,6 +47,12 @@ export const duckDuckGoHtmlSearchBackend: KeylessHtmlSearchBackend = {
   parse: parseDuckDuckGoResults,
 };
 
+const bingRssSearchBackend: KeylessHtmlSearchBackend = {
+  id: "bing-rss",
+  endpoint: "https://www.bing.com/search?format=rss",
+  parse: parseRssSearchResults,
+};
+
 /** No API key, no sandbox, no JS execution. */
 export class KeylessHttpWebProvider implements WebProvider {
   private readonly fetchImpl?: typeof globalThis.fetch;
@@ -65,7 +71,7 @@ export class KeylessHttpWebProvider implements WebProvider {
     this.fetchTimeoutMs = options.fetchTimeoutMs ?? 15_000;
     this.maxBufferBytes = options.maxBufferBytes ?? 5 * 1024 * 1024;
     this.userAgent =
-      options.userAgent ?? "Rakazo/0.1 (+https://github.com/elie222/rakazo; web tools)";
+      options.userAgent ?? "Crew/0.1 (+https://github.com/manfacter/manfacter-crew; web tools)";
   }
 
   describe() {
@@ -87,17 +93,27 @@ export class KeylessHttpWebProvider implements WebProvider {
     const query = request.query.trim();
     if (!query) throw new Error("query is required");
     const maxResults = clampMaxResults(request.maxResults);
-    const searchUrl = new URL(this.searchBackend.endpoint);
-    searchUrl.searchParams.set("q", query);
-    const { body } = await fetchSafeWebText(searchUrl.href, {
-      fetch: this.fetchImpl,
-      resolveHostname: this.resolveHostname,
-      timeoutMs: this.searchTimeoutMs,
-      maxBytes: 1024 * 1024,
-      userAgent: this.userAgent,
-      signal: request.signal ?? context.signal,
-    });
-    return this.searchBackend.parse(body, maxResults);
+    const signal = AbortSignal.any([
+      request.signal ?? context.signal,
+      AbortSignal.timeout(this.searchTimeoutMs),
+    ]);
+    const search = async (backend: KeylessHtmlSearchBackend) => {
+      const searchUrl = new URL(backend.endpoint);
+      searchUrl.searchParams.set("q", query);
+      const { body } = await fetchSafeWebText(searchUrl.href, {
+        fetch: this.fetchImpl,
+        resolveHostname: this.resolveHostname,
+        timeoutMs: this.searchTimeoutMs,
+        maxBytes: 1024 * 1024,
+        userAgent: this.userAgent,
+        signal,
+      });
+      return backend.parse(body, maxResults);
+    };
+    const results = await search(this.searchBackend);
+    return results.length || this.searchBackend !== duckDuckGoHtmlSearchBackend
+      ? results
+      : search(bingRssSearchBackend);
   }
 
   async fetch(request: WebFetchRequest, context: AdapterContext): Promise<WebFetchResult> {
@@ -122,6 +138,29 @@ export class KeylessHttpWebProvider implements WebProvider {
       title: extracted.title,
       ...pageWindow(extracted.text.slice(offset), maxChars, offset),
     };
+  }
+}
+
+export function parseRssSearchResults(xml: string, maxResults: number): WebSearchHit[] {
+  const dom = new JSDOM(xml, { contentType: "text/xml" });
+  const results: WebSearchHit[] = [];
+  try {
+    for (const item of Array.from(dom.window.document.querySelectorAll("item"))) {
+      const title = normalizeWhitespace(item.querySelector("title")?.textContent ?? "");
+      let url: URL;
+      try {
+        url = new URL(item.querySelector("link")?.textContent?.trim() ?? "");
+      } catch {
+        continue;
+      }
+      if (!title || !["http:", "https:"].includes(url.protocol)) continue;
+      const snippet = normalizeWhitespace(item.querySelector("description")?.textContent ?? "");
+      results.push({ title, url: url.href, snippet });
+      if (results.length >= maxResults) break;
+    }
+    return results;
+  } finally {
+    dom.window.close();
   }
 }
 
