@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { builtinAgentTools } from "./builtin-tools.js";
-import { DIRECT_TOOL_LIMIT } from "./lazy-tool-catalog.js";
 import {
   CORE_BUILTIN_TOOL_NAMES,
   FIND_TOOL,
@@ -8,6 +6,8 @@ import {
   partitionTools,
   USE_TOOL,
 } from "./builtin-tool-bridge.js";
+import { builtinAgentTools } from "./builtin-tools.js";
+import { DIRECT_TOOL_LIMIT } from "./lazy-tool-catalog.js";
 import { describeToolActivity } from "./pi-runtime-tools.js";
 import { BUILTIN_AGENT_TOOL_NAMES, selectBuiltinToolsForRun } from "./run-tool-selection.js";
 
@@ -55,9 +55,14 @@ describe("built-in tool bridge", () => {
       "ask_user",
       "attach_file",
       "connect_app",
+      "create_group",
       "find_tool",
+      "handoff_to_bot",
       "list_files",
+      "list_fleet",
+      "message_bot",
       "message_user",
+      "organize_bot",
       "read_file",
       "read_history",
       "remember",
@@ -67,17 +72,21 @@ describe("built-in tool bridge", () => {
       "schedule_create",
       "schedule_list",
       "search_history",
+      "set_child_bot_model",
+      "set_child_instructions",
       "shell",
       "skill_read",
+      "spawn_bot",
       "update_bot",
+      "update_group",
       "update_preferences",
       "use_tool",
       "web_fetch",
       "web_search",
       "write_file",
     ]);
-    // request_secret carries the card and contact kinds; update_bot carries instructions paging.
-    expect(definitionBytes(listed)).toBeLessThanOrEqual(31_878);
+    // Core team schemas add less than 8 KiB; keep the large routine schema deferred.
+    expect(definitionBytes(listed)).toBeLessThanOrEqual(40_000);
     expect(deferred.map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["render_plot", "create_space", "generate_secret", "scratchpad_add"]),
     );
@@ -140,6 +149,23 @@ describe("built-in tool bridge", () => {
     expect(listed.find((tool) => tool.name === FIND_TOOL)!.description).not.toContain(
       "render_plot",
     );
+  });
+
+  it("does not grant fleet access or a disabled peer tool by making their schemas core", () => {
+    const granted = selectBuiltinToolsForRun({
+      graphicalToolsAllowed: false,
+      groupId: null,
+      trigger: "user",
+      semanticMemoryEnabled: false,
+      messagingChannelRun: false,
+      fleetManagement: false,
+      disabledBuiltinTools: ["message_bot"],
+    });
+    const { listed, deferred } = partitionTools(granted);
+    expect(listed.some((tool) => tool.name === "message_bot" || tool.name === "list_fleet")).toBe(
+      false,
+    );
+    expect(findTools(deferred, { names: ["message_bot", "list_fleet"] }).tools).toEqual([]);
   });
 
   it("shows the real tool as activity", () => {

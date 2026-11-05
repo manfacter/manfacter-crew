@@ -14,12 +14,26 @@ export const FIND_TOOL = "find_tool";
 export const USE_TOOL = "use_tool";
 const FIND_TOOL_LIMIT = 3;
 
+// Team setup and delivery are core workflows; bulky routine schemas remain deferred.
+export const TEAM_COORDINATION_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "spawn_bot",
+  "list_fleet",
+  "create_group",
+  "update_group",
+  "organize_bot",
+  "set_child_instructions",
+  "set_child_bot_model",
+  "message_bot",
+  "handoff_to_bot",
+]);
+
 /**
  * Built-in tools the model always sees with full schemas: everyday work, and every tool the
  * runtime answers itself. Other built-ins offered to a run are reached through find_tool and
  * use_tool, so the listed tools stay small and never change mid-run.
  */
 export const CORE_BUILTIN_TOOL_NAMES: ReadonlySet<string> = new Set([
+  ...TEAM_COORDINATION_TOOL_NAMES,
   "shell",
   "user_computer_shell",
   "read_file",

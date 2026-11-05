@@ -28,6 +28,7 @@ import {
   findTools,
   isDeferredTool,
   partitionTools,
+  TEAM_COORDINATION_TOOL_NAMES,
   USE_TOOL,
 } from "./builtin-tool-bridge.js";
 import { shortenToolResultText } from "./context-selection.js";
@@ -332,7 +333,8 @@ function toAgentTool(
     // sequential. Remember also needs this to avoid competing revision writes, and request_secret
     // so a sibling request cannot start after one pauses for its card and share its answer.
     // Small direct sets retain the sequencing that their deferred wrapper provided.
-    ...(isDeferredTool(tool.name) ||
+    ...(TEAM_COORDINATION_TOOL_NAMES.has(tool.name) ||
+    isDeferredTool(tool.name) ||
     SCHEDULE_TOOL_NAMES.has(tool.name) ||
     tool.name === "remember" ||
     tool.name === "request_secret"

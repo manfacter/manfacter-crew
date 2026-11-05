@@ -1109,6 +1109,47 @@ describe("Pi connector tool dispatch", () => {
     },
   );
 
+  it.each(["list_fleet", "message_bot"])(
+    "dispatches a large catalog's %s directly through the normal executor",
+    async (name) => {
+      const args =
+        name === "list_fleet"
+          ? {}
+          : {
+              confirm_name: "CRM analyst",
+              message: "Review the saved synthetic case.",
+            };
+      fakeAgentState.invoke = { name, args };
+      const executeTool = vi.fn(async () => ({ ok: true }));
+      for await (const _event of new PiAgentRuntime().run(
+        {
+          botId: "b",
+          threadId: "t",
+          runId: "direct-large-team",
+          prompt: "Organize the team and delegate its work",
+          instructions: "",
+          history: [],
+          tools: builtinAgentTools,
+          model: { provider: "test", id: "dispatch-test-model" },
+          executeTool,
+        },
+        { signal: new AbortController().signal },
+      )) {
+        // Exhaust the runtime so delivery must reach the normal gateway.
+      }
+      expect(executeTool).toHaveBeenCalledWith(
+        name,
+        args,
+        JSON.stringify(["pi-tool", "main", "call-1"]),
+        undefined,
+        { onShellStillRunning: expect.any(Function) },
+      );
+      expect(fakeAgentState.tools.find((tool) => tool.name === name)?.executionMode).toBe(
+        "sequential",
+      );
+    },
+  );
+
   it("passes update_bot's read offset through the use_tool wrapper", async () => {
     const updateBotTool = builtinAgentTools.find((tool) => tool.name === "update_bot");
     if (!updateBotTool) throw new Error("missing update_bot");
