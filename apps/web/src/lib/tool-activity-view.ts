@@ -87,4 +87,3 @@ export function messageHasVisibleBlocks(
 ): boolean {
   return blocks.some((block) => isShown(block, showToolActivity));
 }
-

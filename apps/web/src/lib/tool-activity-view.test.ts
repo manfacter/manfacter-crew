@@ -109,4 +109,3 @@ describe("a retired import checklist", () => {
     expect(renderableMessageBlocks([retired[0]!, textBlock], false)).toEqual([textBlock]);
   });
 });
-
