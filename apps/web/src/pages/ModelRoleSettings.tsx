@@ -155,7 +155,7 @@ export function ModelRoleSettings({
     );
   const thinkingLevels =
     thinking && primary
-      ? (entryFor(primary)?.thinkingLevels ?? []).filter((level) => level !== "off")
+      ? (entryFor(primary)?.thinkingLevels ?? [])
       : [];
   // Grouped by the connection that runs them.
   const options: RoleModelOption[] = connectedBackupOptions(

@@ -376,6 +376,32 @@ describe("shared role editor", () => {
       expect.anything(),
     );
   });
+  it("persists disabled thinking for an approval model that supports it", async () => {
+    api.forRole.mockResolvedValue(
+      catalog.map((entry) =>
+        entry.id === "chat" ? { ...entry, thinkingLevels: ["off", "low"] } : entry,
+      ),
+    );
+    saved = { primary: { ...chat, thinkingLevel: "low" }, backups: [jev] };
+    await render({ modelRole: "approval", title: "Approval model", thinking: true });
+    await menu("Chat", "Thinking");
+    await click(
+      [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+        (entry) => entry.textContent === "Disabled",
+      ),
+    );
+    expect(api.setRole).toHaveBeenLastCalledWith(
+      {
+        role: "approval",
+        expectedUserId: "user",
+        scope: "account",
+        primary: { ...chat, thinkingLevel: "off" },
+      },
+      expect.anything(),
+    );
+    expect(saved.backups).toEqual([jev]);
+    expect(container.textContent).toContain("Thinking: Disabled");
+  });
   it("does not replace unseen settings after a failed load and retries", async () => {
     api.role.mockRejectedValueOnce(new Error("offline"));
     await render({ modelRole: "approval", title: "Approval model" });

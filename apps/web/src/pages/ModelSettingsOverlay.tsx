@@ -327,6 +327,7 @@ export function ModelSettingsOverlay({
               openConnection({ id, name: id }, null, credentialId, "approval")
             }
             panel={connectionAt === "approval" ? panelFor(true) : null}
+            thinking
           />
           <ModelRoleSettings
             userId={me.userId}
