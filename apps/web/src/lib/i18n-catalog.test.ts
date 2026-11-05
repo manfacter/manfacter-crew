@@ -7,6 +7,20 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { UI_LOCALES } from "./ui-locale";
 
 describe("lingui catalogs", () => {
+  it("preserves the explicit IDs of all Spanish Crew activity labels during compilation", async () => {
+    const filename = fileURLToPath(new URL("../locales/es/messages.po", import.meta.url));
+    const spanish = await formatter().parse(readFileSync(filename, "utf8"), {
+      locale: "es",
+      sourceLocale: "en",
+      filename,
+    });
+    const activityIds = Object.keys(spanish).filter((id) => id.startsWith("crew.activity."));
+    expect(activityIds).toHaveLength(20);
+    for (const id of activityIds) {
+      expect(spanish[id]?.translation, id).toBeTruthy();
+    }
+  });
+
   it("translates sign-out failures in every supported language", () => {
     for (const locale of [
       "de",

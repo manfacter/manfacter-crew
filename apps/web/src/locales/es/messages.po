@@ -7282,62 +7282,82 @@ msgstr "Tu proveedor de voz rechazó la clave."
 msgid "ZIP or postal code"
 msgstr ""
 
+#. js-lingui-explicit-id
 msgid "crew.activity.context"
 msgstr "Leyendo el contexto comercial"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.crm"
 msgstr "Consultando las fichas del CRM"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.company"
 msgstr "Guardando una empresa"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.contact"
 msgstr "Guardando un contacto"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.opportunity"
 msgstr "Creando una oportunidad"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.next-step"
 msgstr "Actualizando el siguiente paso"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.task"
 msgstr "Guardando una tarea interna"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.draft"
 msgstr "Guardando un borrador de correo"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.find"
 msgstr "Consultando las acciones disponibles"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.coordinate"
 msgstr "Coordinándose con un compañero"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.team"
 msgstr "Consultando el equipo"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.teammate"
 msgstr "Creando un compañero"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.search"
 msgstr "Buscando fuentes públicas"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.source"
 msgstr "Leyendo una fuente"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.note"
 msgstr "Anotando información de trabajo"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.profile"
 msgstr "Actualizando el perfil"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.role"
 msgstr "Actualizando las funciones de un compañero"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.group"
 msgstr "Creando una conversación de equipo"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.question"
 msgstr "Planteando una pregunta"
 
+#. js-lingui-explicit-id
 msgid "crew.activity.action"
 msgstr "Ejecutando una acción"
