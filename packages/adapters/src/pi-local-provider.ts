@@ -95,9 +95,13 @@ function localModel(id: string): Model<"openai-completions"> {
     provider: LOCAL_PROVIDER_ID,
     baseUrl: localBaseUrl(),
     reasoning,
-    compat: reasoning
-      ? { supportsDeveloperRole: false, supportsReasoningEffort: true, thinkingFormat: "openai" }
-      : { supportsDeveloperRole: false, supportsReasoningEffort: false },
+    compat: {
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: reasoning,
+      // Local completion servers can ignore max_completion_tokens.
+      maxTokensField: "max_tokens",
+      ...(reasoning ? { thinkingFormat: "openai" } : {}),
+    },
     // Mirrors openAiCompatibleModel's reasoning levels.
     ...(reasoning ? { thinkingLevelMap: { off: "none", xhigh: "xhigh", max: "max" } } : {}),
     input: inputModalities(localVisionModelIds().has(id)),

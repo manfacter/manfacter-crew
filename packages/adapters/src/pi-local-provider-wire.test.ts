@@ -83,6 +83,8 @@ describe("local model output limit on the wire", () => {
   it("sends the operator's RAKAZO_LOCAL_MAX_TOKENS when the connection sets none", async () => {
     const request = await wireRequest({ ...localServer, RAKAZO_LOCAL_MAX_TOKENS: "20000" });
     expect(outputLimit(request)).toBe(20_000);
+    expect(request.max_tokens).toBe(20_000);
+    expect(request).not.toHaveProperty("max_completion_tokens");
   });
 
   it("keeps 4096 when RAKAZO_LOCAL_MAX_TOKENS is unset", async () => {
@@ -130,5 +132,15 @@ describe("local model reasoning on the wire", () => {
       RAKAZO_LOCAL_REASONING_MODELS: "example-model",
     });
     expect(listed.reasoning_effort).toBe("medium");
+    expect(listed.max_tokens).toBe(4096);
+    expect(listed).not.toHaveProperty("max_completion_tokens");
+
+    const direct = await wireRequest(
+      { ...localServer, RAKAZO_LOCAL_REASONING_MODELS: "example-model" },
+      { thinkingLevel: "off", maxTokens: 128 },
+    );
+    expect(direct.reasoning_effort).toBe("none");
+    expect(direct.max_tokens).toBe(128);
+    expect(direct).not.toHaveProperty("max_completion_tokens");
   });
 });

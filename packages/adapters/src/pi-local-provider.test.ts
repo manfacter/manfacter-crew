@@ -125,6 +125,7 @@ describe("local model provider", () => {
       expect(model?.compat).toEqual({
         supportsDeveloperRole: false,
         supportsReasoningEffort: false,
+        maxTokensField: "max_tokens",
       });
       expect(model?.thinkingLevelMap).toBeUndefined();
     }
