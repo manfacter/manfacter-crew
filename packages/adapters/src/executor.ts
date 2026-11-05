@@ -1814,6 +1814,7 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
                 });
               },
               prompt,
+              locale: userLocale,
               ...(speakers &&
               (run.trigger === "user" ||
                 (run.trigger === "follow_up" && sourceMessage?.role === "user"))

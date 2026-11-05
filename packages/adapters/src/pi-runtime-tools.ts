@@ -12,6 +12,7 @@ import type {
 } from "@rakazo/adapter-kit";
 import { DEFAULT_CONTEXT_STRATEGY } from "@rakazo/adapter-kit";
 import { FLEET_TOOL_NAMES } from "@rakazo/contracts";
+import { matchUiLocale } from "@rakazo/core";
 import {
   isInternalTermination,
   isTerminatingReplyResult,
@@ -758,7 +759,25 @@ export interface ToolHost {
   modelResponses?: number;
 }
 
-export function toolCallBudgetExceededMessage(limit: number) {
+export function toolCallBudgetExceededMessage(limit: number, locale?: string | null) {
+  const notices: Record<string, string> = {
+    es: "He llegado al límite de trabajo de este turno. Escríbeme para continuar.",
+    de: "Ich habe die Arbeitsgrenze für diesen Durchgang erreicht. Schreib mir, um fortzufahren.",
+    fr: "J’ai atteint la limite de travail pour ce tour. Écris-moi pour continuer.",
+    ko: "이번 작업 한도에 도달했습니다. 계속하려면 메시지를 보내 주세요.",
+    tr: "Bu turdaki çalışma sınırına ulaştım. Devam etmek için bana yaz.",
+    hi: "इस बार की कार्य सीमा पूरी हो गई है। जारी रखने के लिए मुझे संदेश भेजें।",
+    "pt-BR": "Cheguei ao limite de trabalho desta rodada. Envie uma mensagem para continuar.",
+    "zh-CN": "本轮工作已达到上限。请发消息让我继续。",
+    "zh-TW": "本輪工作已達到上限。請傳訊息讓我繼續。",
+    ru: "Достигнут предел работы за этот ход. Напишите мне, чтобы продолжить.",
+    he: "הגעתי למגבלת העבודה בסבב הזה. אפשר לשלוח לי הודעה כדי להמשיך.",
+    nl: "Ik heb de werklimiet voor deze beurt bereikt. Stuur me een bericht om verder te gaan.",
+    ja: "今回の作業上限に達しました。続けるにはメッセージを送ってください。",
+    pl: "Osiągnięto limit pracy w tej turze. Napisz do mnie, aby kontynuować.",
+  };
+  const translated = notices[matchUiLocale(locale, ["en", ...Object.keys(notices)])];
+  if (translated) return translated;
   return `I stopped after reaching the limit of ${limit} tool calls in this turn. Send another message to continue.`;
 }
 

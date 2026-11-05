@@ -1,6 +1,7 @@
 FROM ghcr.io/elie222/rakazo/app@sha256:05f9098f6f8a67fafc3e9681b880ed835b3945b0f378b6562392e48908f2af22
 USER root
 COPY packages/core/src /app/packages/core/src
+COPY packages/adapter-kit/src/types.ts /app/packages/adapter-kit/src/types.ts
 COPY packages/contracts/src/openai-compatible-ui.ts /app/packages/contracts/src/openai-compatible-ui.ts
 COPY packages/auth/src/host-session.ts /app/packages/auth/src/host-session.ts
 COPY packages/auth/src/index.ts /app/packages/auth/src/index.ts
@@ -15,6 +16,7 @@ COPY packages/adapters/src/builtin-skills.ts /app/packages/adapters/src/builtin-
 COPY packages/adapters/src/auto-review.ts /app/packages/adapters/src/auto-review.ts
 COPY packages/adapters/src/builtin-tool-bridge.ts /app/packages/adapters/src/builtin-tool-bridge.ts
 COPY packages/adapters/src/pi-runtime-tools.ts /app/packages/adapters/src/pi-runtime-tools.ts
+COPY packages/adapters/src/pi-runtime.ts /app/packages/adapters/src/pi-runtime.ts
 COPY packages/adapters/src/pi-local-provider.ts /app/packages/adapters/src/pi-local-provider.ts
 COPY packages/adapters/src/pi-openai-compatible-provider.ts /app/packages/adapters/src/pi-openai-compatible-provider.ts
 COPY packages/adapters/src/pi-runtime-limits.ts /app/packages/adapters/src/pi-runtime-limits.ts

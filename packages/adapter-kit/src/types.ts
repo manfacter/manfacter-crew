@@ -538,6 +538,8 @@ export interface AgentRunRequest {
   /** Group threads: the label ("User") the model sees on the prompt, the same as on history. */
   promptSpeaker?: string;
   instructions: string;
+  /** Account language for automatic runtime notices. */
+  locale?: string | null;
   history: Array<{
     id?: string;
     createdAt?: string;

@@ -295,35 +295,39 @@ it("keeps a pause in control when its batch also ends the turn", async () => {
   expect(events.at(-1)).toEqual({ type: "done" });
 });
 
-it("keeps the tool-call budget reply ahead of a terminating result", async () => {
-  process.env.MAX_TOOL_CALLS_PER_TURN = "2";
-  const { executeTool, names } = refusingExecutor();
-  providerState.stream
-    .mockImplementationOnce(() =>
-      toolCalls(primary, [
-        { type: "toolCall", id: "call-1", name: "update_bot", arguments: { model: "other" } },
-      ]),
-    )
-    .mockImplementationOnce(() =>
-      toolCalls(primary, [
-        { type: "toolCall", id: "call-2", name: "update_bot", arguments: { model: "other" } },
-        { type: "toolCall", id: "call-3", name: "list_files", arguments: { path: "" } },
-      ]),
-    )
-    .mockImplementation(() => reply(primary, "Trying again anyway."));
-  const events = await run(request(executeTool));
+it.each([undefined, "es", "es-ES", "unknown"])(
+  "keeps the budget reply localized to %s ahead of a terminating result",
+  async (locale) => {
+    process.env.MAX_TOOL_CALLS_PER_TURN = "2";
+    const { executeTool, names } = refusingExecutor();
+    providerState.stream
+      .mockImplementationOnce(() =>
+        toolCalls(primary, [
+          { type: "toolCall", id: "call-1", name: "update_bot", arguments: { model: "other" } },
+        ]),
+      )
+      .mockImplementationOnce(() =>
+        toolCalls(primary, [
+          { type: "toolCall", id: "call-2", name: "update_bot", arguments: { model: "other" } },
+          { type: "toolCall", id: "call-3", name: "list_files", arguments: { path: "" } },
+        ]),
+      )
+      .mockImplementation(() => reply(primary, "Trying again anyway."));
+    const events = await run({ ...request(executeTool), locale });
+    const notice = locale?.startsWith("es")
+      ? "He llegado al límite de trabajo de este turno. Escríbeme para continuar."
+      : "I stopped after reaching the limit of 2 tool calls in this turn. Send another message to continue.";
 
-  // The third call never executes: the budget skips it.
-  expect(names).toEqual(["update_bot", "update_bot"]);
-  expect(providerState.stream).toHaveBeenCalledTimes(2);
-  expect(texts(events)).toEqual([
-    "I stopped after reaching the limit of 2 tool calls in this turn. Send another message to continue.",
-  ]);
-  expect(events.at(-1)).toEqual({
-    type: "done",
-    text: "I stopped after reaching the limit of 2 tool calls in this turn. Send another message to continue.",
-  });
-});
+    // The third call never executes: the budget skips it.
+    expect(names).toEqual(["update_bot", "update_bot"]);
+    expect(providerState.stream).toHaveBeenCalledTimes(2);
+    expect(texts(events)).toEqual([notice]);
+    expect(events.at(-1)).toEqual({
+      type: "done",
+      text: notice,
+    });
+  },
+);
 
 it("returns the refusal a subagent's mixed batch ended on as its result", async () => {
   const { executeTool, names } = refusingExecutor();

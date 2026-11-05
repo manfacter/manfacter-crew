@@ -1169,7 +1169,10 @@ export class PiAgentRuntime implements AgentRuntime {
           }
         }
         if (budgetExceeded) {
-          const budgetMessage = toolCallBudgetExceededMessage(host.toolCallBudget.limit);
+          const budgetMessage = toolCallBudgetExceededMessage(
+            host.toolCallBudget.limit,
+            request.locale,
+          );
           if (streamed.trim()) {
             const suffix = `\n\n${budgetMessage}`;
             queue.push({ type: "text", text: suffix });
