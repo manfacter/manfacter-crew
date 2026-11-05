@@ -40,7 +40,7 @@ import type { ArtifactTarget } from "../../lib/artifact-open";
 import { projectPageCards } from "../../lib/page-cards";
 import { lastSelectedText, quoteDraftForSelection } from "../../lib/quote-selection";
 import type { createSpaceRpc } from "../../lib/rpc";
-import { messageHasVisibleBlocks } from "../../lib/tool-activity-view";
+import { messageHasVisibleBlocks, toolStepLabel } from "../../lib/tool-activity-view";
 import { TRANSCRIPT_CONTENT_PADDING } from "../../lib/transcript-layout";
 import { transcriptIsNearEnd, transcriptMovedDown } from "../../lib/transcript-scroll";
 import { TimeSeparator, UnreadDivider } from "./chat-context";
@@ -228,7 +228,7 @@ export const Transcript = memo(function Transcript({
   );
   const separatorIds = timeSeparatorIds(shownMessages);
   const unreadDividerId = unreadDividerMessageId(shownMessages, unreadAfterSeq, olderCursor);
-  const workingLabel = liveActivityLine(messages) ?? t`Working…`;
+  const workingLabel = toolStepLabel(liveActivityLine(messages) ?? t`Working…`);
   const [quoteDraft, setQuoteDraft] = useState<{
     message: ThreadMessage;
     text: string;

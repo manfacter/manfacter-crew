@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react";
 import { Plural, Trans } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { ThreadMessage } from "@rakazo/contracts";
@@ -10,7 +11,7 @@ import {
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { Fragment } from "react";
-import { toolStepCount } from "../lib/tool-activity-view";
+import { toolStepCount, toolStepLabel } from "../lib/tool-activity-view";
 
 type ToolStep = Extract<ThreadMessage["blocks"][number], { kind: "steps" }>["steps"][number];
 
@@ -27,6 +28,7 @@ export function ToolSteps({
   /** Show only the last `limit` steps, with a count of the earlier ones above them. */
   limit?: number;
 }) {
+  useLingui();
   const hidden = limit !== undefined && steps.length > limit ? steps.length - limit : 0;
   const shown = hidden > 0 ? steps.slice(hidden) : steps;
   return (
@@ -39,6 +41,7 @@ export function ToolSteps({
       {shown.map((step, offset) => {
         const index = hidden + offset;
         const isCurrent = index === currentIndex;
+        const label = toolStepLabel(step.label);
         return (
           <Fragment key={index}>
             {step.note ? (
@@ -57,9 +60,9 @@ export function ToolSteps({
                 className={`min-w-0 flex-1 truncate text-[13px] ${
                   isCurrent ? "text-foreground" : "text-muted-foreground"
                 }`}
-                title={step.label}
+                title={label}
               >
-                {step.label}
+                {label}
                 {step.count > 1 ? ` ×${step.count}` : ""}
               </span>
             </div>

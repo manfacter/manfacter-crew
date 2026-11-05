@@ -12,6 +12,11 @@ vi.mock("@lingui/react/macro", () => ({
   Plural: ({ value, one, other }: { value: number; one: string; other: string }) =>
     (value === 1 ? one : other).replace("#", String(value)),
 }));
+vi.mock("@lingui/core/macro", () => ({ msg: (message: unknown) => message }));
+vi.mock("@lingui/react", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  useLingui: () => ({}),
+}));
 
 /** The words a reader sees, with each element's text as its own word. */
 const visibleText = (html: string) =>

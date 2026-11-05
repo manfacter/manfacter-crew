@@ -1,11 +1,16 @@
+import { i18n } from "@lingui/core";
 import type { MessageBlock } from "@rakazo/contracts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@lingui/core/macro", () => ({ msg: (message: unknown) => message }));
+
 import {
   isToolOnlyNarration,
   messageHasVisibleBlocks,
   renderableMessageBlocks,
   shouldRenderToolCard,
   toolStepCount,
+  toolStepLabel,
 } from "./tool-activity-view";
 
 const stepsBlock: MessageBlock = { kind: "steps", steps: [{ label: "Shell", count: 2 }] };
@@ -13,6 +18,24 @@ const stepsNoDuration: MessageBlock = { kind: "steps", steps: [{ label: "Shell",
 const textBlock: MessageBlock = { kind: "text", text: "Here you go." };
 const liveActivity: MessageBlock = { kind: "progress", text: "Using shell", activity: true };
 const narration: MessageBlock = { kind: "progress", text: "Let me check that." };
+
+it("labels actual actions, preserves unknown labels and follows the active locale", () => {
+  const previous = i18n.locale;
+  i18n.load("es", { "crew.activity.draft": "Guardando un borrador de correo" });
+  i18n.activate("es");
+  try {
+    expect(toolStepLabel("Mcp example admin save draft")).toBe("Guardando un borrador de correo");
+    expect(toolStepLabel("mcp__example__admin_save_draft")).toBe("Guardando un borrador de correo");
+    expect(toolStepLabel("Using example: admin_save_draft")).toBe(
+      "Guardando un borrador de correo",
+    );
+    expect(toolStepLabel("A custom action")).toBe("A custom action");
+    expect(toolStepLabel("constructor")).toBe("constructor");
+  } finally {
+    i18n.load(previous || "en", {});
+    i18n.activate(previous || "en");
+  }
+});
 
 describe("tool step count", () => {
   it("sums each row's count", () => {
@@ -86,3 +109,4 @@ describe("a retired import checklist", () => {
     expect(renderableMessageBlocks([retired[0]!, textBlock], false)).toEqual([textBlock]);
   });
 });
+

@@ -1,5 +1,45 @@
+import { i18n } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type { MessageBlock } from "@rakazo/contracts";
 import { isRetiredImportSetup, isToolActivityBlock } from "@rakazo/core";
+
+const activityLabels = {
+  admin_sales_context: msg({ id: "crew.activity.context", message: "Reading the sales brief" }),
+  admin_find_records: msg({ id: "crew.activity.crm", message: "Consulting CRM records" }),
+  admin_create_company: msg({ id: "crew.activity.company", message: "Saving a company" }),
+  admin_create_contact: msg({ id: "crew.activity.contact", message: "Saving a contact" }),
+  admin_create_opportunity: msg({
+    id: "crew.activity.opportunity",
+    message: "Creating an opportunity",
+  }),
+  admin_update_opportunity: msg({
+    id: "crew.activity.next-step",
+    message: "Updating the next step",
+  }),
+  admin_create_task: msg({ id: "crew.activity.task", message: "Saving an internal task" }),
+  admin_save_draft: msg({ id: "crew.activity.draft", message: "Saving an email draft" }),
+  find_tool: msg({ id: "crew.activity.find", message: "Checking available actions" }),
+  message_bot: msg({ id: "crew.activity.coordinate", message: "Coordinating with a teammate" }),
+  list_fleet: msg({ id: "crew.activity.team", message: "Checking the team" }),
+  spawn_bot: msg({ id: "crew.activity.teammate", message: "Creating a teammate" }),
+  web_search: msg({ id: "crew.activity.search", message: "Searching public sources" }),
+  web_fetch: msg({ id: "crew.activity.source", message: "Reading a source" }),
+  scratchpad_add: msg({ id: "crew.activity.note", message: "Taking a work note" }),
+};
+
+export function toolStepLabel(label: string): string {
+  const name = label
+    .trim()
+    .replace(/^Using (?:[^:]+: )?/, "")
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  const action = name.startsWith("mcp_") ? name.match(/_(admin_[a-z_]+)$/)?.[1] : name;
+  const message =
+    action && Object.hasOwn(activityLabels, action)
+      ? activityLabels[action as keyof typeof activityLabels]
+      : undefined;
+  return message ? i18n._(message) : label;
+}
 
 /** Number of tool calls behind a steps block: the sum of each row's count. */
 export function toolStepCount(steps: readonly { count: number }[]): number {
@@ -47,3 +87,4 @@ export function messageHasVisibleBlocks(
 ): boolean {
   return blocks.some((block) => isShown(block, showToolActivity));
 }
+

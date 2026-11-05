@@ -7281,3 +7281,48 @@ msgstr "Tu proveedor de voz rechazó la clave."
 #: src/components/vault/VaultItemEditor.tsx
 msgid "ZIP or postal code"
 msgstr ""
+
+msgid "crew.activity.context"
+msgstr "Leyendo el contexto comercial"
+
+msgid "crew.activity.crm"
+msgstr "Consultando las fichas del CRM"
+
+msgid "crew.activity.company"
+msgstr "Guardando una empresa"
+
+msgid "crew.activity.contact"
+msgstr "Guardando un contacto"
+
+msgid "crew.activity.opportunity"
+msgstr "Creando una oportunidad"
+
+msgid "crew.activity.next-step"
+msgstr "Actualizando el siguiente paso"
+
+msgid "crew.activity.task"
+msgstr "Guardando una tarea interna"
+
+msgid "crew.activity.draft"
+msgstr "Guardando un borrador de correo"
+
+msgid "crew.activity.find"
+msgstr "Consultando las acciones disponibles"
+
+msgid "crew.activity.coordinate"
+msgstr "Coordinándose con un compañero"
+
+msgid "crew.activity.team"
+msgstr "Consultando el equipo"
+
+msgid "crew.activity.teammate"
+msgstr "Creando un compañero"
+
+msgid "crew.activity.search"
+msgstr "Buscando fuentes públicas"
+
+msgid "crew.activity.source"
+msgstr "Leyendo una fuente"
+
+msgid "crew.activity.note"
+msgstr "Anotando información de trabajo"
