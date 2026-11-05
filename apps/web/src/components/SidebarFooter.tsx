@@ -1,6 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { NavLink } from "@rakazo/contracts";
-import { ANDROID_APP_STORE_URL, IOS_APP_STORE_URL } from "@rakazo/contracts";
 import {
   AppMarkStack,
   Button,
@@ -19,7 +18,6 @@ import {
   Plug,
   ScrollText,
   Settings,
-  Smartphone,
   SquareKanban,
   UserPlus,
   UserRound,
@@ -226,17 +224,6 @@ export function SidebarFooter({
               </Button>
             ))}
             <div className="my-1 border-t border-border" />
-            <a
-              className={`${buttonVariants({ variant: "ghost" })} h-9 w-full justify-start gap-2.5 font-normal`}
-              href={
-                /Android/i.test(navigator.userAgent) ? ANDROID_APP_STORE_URL : IOS_APP_STORE_URL
-              }
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Smartphone className="text-muted-foreground" strokeWidth={1.75} />
-              <Trans>Get the mobile app</Trans>
-            </a>
             {onInvite ? (
               <Button
                 variant="ghost"
@@ -249,7 +236,7 @@ export function SidebarFooter({
             ) : null}
             <a
               className={`${buttonVariants({ variant: "ghost" })} h-9 w-full justify-start gap-2.5 font-normal`}
-              href="https://github.com/elie222/rakazo/blob/main/docs/self-host.md"
+              href="https://github.com/manfacter/manfacter-crew/blob/codex/admin-embed/docs/admin-embed.md"
               target="_blank"
               rel="noreferrer"
             >

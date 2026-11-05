@@ -144,7 +144,6 @@ it("opens integrations and keeps the existing account actions and links", async 
     "Skills",
     "Artifacts",
     "Board",
-    "Get the mobile app",
     "Docs",
     "Log out",
   ]);
@@ -159,15 +158,14 @@ it("omits Board when unavailable", async () => {
   );
 });
 
-it("offers Google Play on Android", async () => {
-  vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Android");
+it("links to the maintained fork documentation without advertising an upstream app", async () => {
   await render();
-  const mobile = [...document.querySelectorAll("a")].find(
-    (link) => link.textContent === "Get the mobile app",
-  )!;
-  expect(mobile.href).toBe("https://play.google.com/store/apps/details?id=com.rakazo.app");
+  const docs = [...document.querySelectorAll("a")].find((link) => link.textContent === "Docs")!;
+  expect(docs.href).toBe(
+    "https://github.com/manfacter/manfacter-crew/blob/codex/admin-embed/docs/admin-embed.md",
+  );
+  expect(document.querySelector('a[href*="apps.apple.com"], a[href*="play.google.com"]')).toBeNull();
 });
-
 it("falls back when app artwork fails and accepts replacement artwork", async () => {
   await render("Demo User", undefined, undefined, undefined, [
     { name: "Slack", logo: "https://example.test/slack.svg" },
