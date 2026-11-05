@@ -22,25 +22,31 @@ export function modelStreamMaxRetries(): number {
 }
 
 /**
- * Whole milliseconds from 1 second to 5 minutes; blank or out of range keeps the default.
- * Node's fetch stops waiting for headers or the next body chunk after 5 minutes, so a longer
- * setting would not take effect for most providers.
+ * Blank or out of range keeps the default; local CPU servers can opt into longer waits.
  */
-function timeoutMsFromEnv(value: string | undefined, fallback: number): number {
+function timeoutMsFromEnv(value: string | undefined, fallback: number, maximum = 300_000): number {
   const raw = Number(value?.trim() || fallback);
-  return Number.isInteger(raw) && raw >= 1_000 && raw <= 300_000 ? raw : fallback;
+  return Number.isInteger(raw) && raw >= 1_000 && raw <= maximum ? raw : fallback;
 }
 
-export function modelStreamTimeoutMs(): number {
-  return timeoutMsFromEnv(process.env.MODEL_STREAM_TIMEOUT_MS, MODEL_STREAM_TIMEOUT_MS);
+export function modelStreamTimeoutMs(provider?: string): number {
+  return timeoutMsFromEnv(
+    process.env.MODEL_STREAM_TIMEOUT_MS,
+    MODEL_STREAM_TIMEOUT_MS,
+    provider === LOCAL_PROVIDER_ID ? 1_200_000 : 300_000,
+  );
 }
 
 export function modelConnectTimeoutMs(): number {
   return timeoutMsFromEnv(process.env.MODEL_CONNECT_TIMEOUT_MS, MODEL_CONNECT_TIMEOUT_MS);
 }
 
-export function modelStreamIdleTimeoutMs(): number {
-  return timeoutMsFromEnv(process.env.MODEL_STREAM_IDLE_TIMEOUT_MS, MODEL_STREAM_IDLE_TIMEOUT_MS);
+export function modelStreamIdleTimeoutMs(provider?: string): number {
+  return timeoutMsFromEnv(
+    process.env.MODEL_STREAM_IDLE_TIMEOUT_MS,
+    MODEL_STREAM_IDLE_TIMEOUT_MS,
+    provider === LOCAL_PROVIDER_ID ? 1_200_000 : 300_000,
+  );
 }
 
 export const TOOL_RESULT_TEXT_LIMIT = 12_000;

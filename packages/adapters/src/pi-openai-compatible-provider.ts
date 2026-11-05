@@ -267,7 +267,7 @@ export function createOpenAiCompatibleFetch(
  * Request class and reads a global Request as the string "[object Request]".
  * Flatten Request inputs to a URL plus init, with init overriding the
  * Request's fields the way fetch itself merges them. */
-async function requestInitFor(input: RequestInfo | URL, init?: RequestInit): Promise<RequestInit> {
+export async function requestInitFor(input: RequestInfo | URL, init?: RequestInit): Promise<RequestInit> {
   if (!(input instanceof Request)) return init ?? {};
   const request = new Request(input, init);
   const body =
@@ -280,7 +280,7 @@ async function requestInitFor(input: RequestInfo | URL, init?: RequestInit): Pro
   };
 }
 
-async function closeDispatcherWithResponse(
+export async function closeDispatcherWithResponse(
   response: Response,
   dispatcher: Agent,
 ): Promise<Response> {

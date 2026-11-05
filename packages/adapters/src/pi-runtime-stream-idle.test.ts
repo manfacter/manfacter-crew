@@ -277,6 +277,30 @@ describe("Model stream idle watchdog", () => {
   });
 });
 
+describe("slow local streams", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it("passes the local header deadline and keeps the extended silence bound finite", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("MODEL_STREAM_TIMEOUT_MS", "1200000");
+    vi.stubEnv("MODEL_STREAM_IDLE_TIMEOUT_MS", "1200000");
+    const model = { provider: "local", api: "openai-completions" } as Model<Api>;
+    const inner = new AssistantMessageEventStream();
+    const streamSimple = vi.fn((_model: Model<Api>, _context: Context, _options?: SimpleStreamOptions) => inner);
+    reliableModelStream({ streamSimple } as unknown as Models, model, context, undefined, undefined);
+    const options = streamSimple.mock.calls[0]?.[2];
+    expect(options?.timeoutMs).toBe(1_200_000);
+    await options?.onResponse?.({ status: 200 } as Response, model);
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(options?.signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(900_000);
+    expect(options?.signal?.aborted).toBe(true);
+  });
+});
+
 describe.each([
   codexModel,
   { provider: "openrouter", api: "openai-completions" } as Model<Api>,

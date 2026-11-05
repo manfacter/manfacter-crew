@@ -422,7 +422,6 @@ export function fallbackAwareModelStream(
     // Bound same-model retries. Explicit backups retain their per-model header
     // timeout: a post-header idle watchdog can already exceed that timeout.
     let startedAt = Date.now();
-    const timeoutMs = options?.timeoutMs ?? modelStreamTimeoutMs();
     let firstRetryableError: Extract<AssistantMessageEvent, { type: "error" }> | undefined;
     // Set once this call has been repeated after spending its output budget on nothing visible.
     let lengthRecovered = false;
@@ -432,6 +431,8 @@ export function fallbackAwareModelStream(
     const continuingCutReply = Boolean(state.continuingCutReply);
     state.continuingCutReply = false;
     while (!signalAborted()) {
+      const active = state.getActive();
+      const timeoutMs = options?.timeoutMs ?? modelStreamTimeoutMs(active.model.provider);
       const remainingMs = timeoutMs - (Date.now() - startedAt);
       const failure = firstRetryableError ?? sizingFailure;
       if ((retries > 0 || sizingFailure) && remainingMs <= 0 && failure) {
@@ -439,7 +440,6 @@ export function fallbackAwareModelStream(
         output.end(failure.error);
         return;
       }
-      const active = state.getActive();
       const targetKey = JSON.stringify([active.config.provider, active.config.id]);
       const connectionKey = modelTargetKey(active.config);
       const thinkingLevelMap = state.thinkingLevelMaps?.get(connectionKey);

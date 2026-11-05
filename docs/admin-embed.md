@@ -22,6 +22,8 @@ The host application can connect its scoped CRM commands through Rakazo's existi
 
 Small granted tool sets use the existing direct-tool limit instead of requiring discovery wrappers. This makes team messaging and handoffs directly callable while retaining the same executor, approvals and sequential execution. Larger catalogs keep the original lazy discovery behavior; this does not grant additional tools.
 
+Slow local servers can explicitly set `MODEL_STREAM_TIMEOUT_MS` and `MODEL_STREAM_IDLE_TIMEOUT_MS` up to 1200000 milliseconds. The local transport applies these bounds to its dispatcher as well as the runtime: buffered tool-call JSON can take longer than Node's default five-minute wait. Defaults, connection limits and other providers keep their previous bounds. Cancellation still aborts the request and closes its dispatcher. Update both API and worker images, since interactive turns can execute in the API.
+
 ## Verification
 
 Offline checks cover strict assertions, signatures, lifetimes and CSP ancestry. Live synthetic protocol checks cover replay, forged assertions, tenant separation, disabled signup, HttpOnly cookies and expiration during activity. A separate real-browser check verifies entry through the existing host session, bot creation and chat persistence. These checks do not establish unattended 24-hour reliability or sales-content quality.

@@ -65,6 +65,22 @@ describe.each([
   });
 });
 
+describe("slow local model deadlines", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ["MODEL_STREAM_TIMEOUT_MS", modelStreamTimeoutMs, MODEL_STREAM_TIMEOUT_MS],
+    ["MODEL_STREAM_IDLE_TIMEOUT_MS", modelStreamIdleTimeoutMs, MODEL_STREAM_IDLE_TIMEOUT_MS],
+  ] as const)("bounds %s at twenty minutes only for the local provider", (name, read, fallback) => {
+    vi.stubEnv(name, "1200000");
+    expect(read("local")).toBe(1_200_000);
+    expect(read("openrouter")).toBe(fallback);
+    expect(read()).toBe(fallback);
+    vi.stubEnv(name, "1200001");
+    expect(read("local")).toBe(fallback);
+  });
+});
+
 describe("billedPromptTokens", () => {
   it("adds cache read and write onto uncached input so the meter matches provider cost", () => {
     expect(
