@@ -423,6 +423,17 @@ describe("inbound wake prompt", () => {
     const wake = buildBotMessageWakePrompt({ from: bots[0]!, text: "Deploy done.", intent: "fyi" });
     expect(wake).not.toContain(BOT_DELIBERATION_GUIDANCE);
   });
+
+  it("asks result and status callbacks to verify claims and continue authorized work", () => {
+    for (const intent of ["result", "status"] as const) {
+      const wake = buildBotMessageWakePrompt({ from: bots[0]!, text: "Done.", intent });
+      expect(wake).toContain("available evidence before presenting peer claims as verified");
+      expect(wake).toContain("Continue the next already-authorized coordination steps");
+      expect(wake).toContain(
+        "Distinguish reported claims, verified results, and missing evidence.",
+      );
+    }
+  });
 });
 
 describe("group routing metadata", () => {
