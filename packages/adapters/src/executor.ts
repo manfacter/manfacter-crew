@@ -146,6 +146,7 @@ import type {
 import { restoreTurnCheckpointEffects, settleRunningHelpers } from "./run-context.js";
 import { APPROVED_EFFECT_REPLAY_ORDER, buildApprovalContinuation } from "./run-effects.js";
 import {
+  BOT_COMPUTER_TOOL_NAMES,
   BOT_DIRECTORY_LIMIT,
   dockerComputerToolInstruction,
   persistentComputerInstruction,
@@ -1136,8 +1137,9 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           },
           () => runAbortController?.abort(),
         );
-        const computerKind =
-          (await deps.sandbox.provisionKind?.(storedComputer.homeKey)) ?? storedComputer.kind;
+        const selectedComputerKind = await deps.sandbox.provisionKind?.(storedComputer.homeKey);
+        const computerKind = selectedComputerKind ?? storedComputer.kind;
+        const computerAvailable = (selectedComputerKind ?? deps.sandbox.describe().id) !== "none";
         const workspaceCheckpoint = createRunWorkspaceCheckpoint(
           async () => {
             if (!runComputer.ready) return;
@@ -1312,6 +1314,8 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
         const pageBrowserAllowed =
           graphical && browser.describe().capabilities.page && !heldForTakeover;
         const disabledBuiltinTools = disabledBuiltinToolSet(bot.disabledBuiltinTools);
+        if (!computerAvailable)
+          for (const name of BOT_COMPUTER_TOOL_NAMES) disabledBuiltinTools.add(name);
         const userComputerOwnerId = userComputerOwner({
           trigger: run.trigger,
           sourceRole: sourceMessage?.role,
@@ -1352,8 +1356,8 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
             voiceCall,
             // Every member already got a message that names nobody, so a handoff only repeats it.
             disabledBuiltinTools: groupReplyOptional
-              ? [...(bot.disabledBuiltinTools ?? []), "handoff_to_bot"]
-              : bot.disabledBuiltinTools,
+              ? [...disabledBuiltinTools, "handoff_to_bot"]
+              : [...disabledBuiltinTools],
             fleetManagement: bot.fleetManagement,
             followUpFromUser: sourceMessage?.role === "user",
             userComputer: userComputer === "connected",
@@ -1417,10 +1421,8 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           graphical,
           disabled: disabledBuiltinTools,
         });
-        const dockerToolInstruction = dockerComputerToolInstruction(
-          computerKind,
-          disabledBuiltinTools,
-        );
+        const dockerToolInstruction =
+          computerAvailable && dockerComputerToolInstruction(computerKind, disabledBuiltinTools);
         const hostEnvironment =
           computerKind && usesNativeShell(computerKind)
             ? await deps.sandbox
@@ -1447,18 +1449,20 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
             ? `Commands run on a Windows cloud computer. ${hostShell} Files outside the bot workspace can be accessed through commands. The screen shows the Windows desktop; use the graphical tools for apps without a command line.`
             : `Commands run on the user's ${hostEnvironment.platform} computer with their account permissions. ${hostShell} Local files outside the bot workspace can be accessed through commands. App launching is available through OS commands; graphical screen control is unavailable.`;
         const computerInstruction = [
-          "Use the computer only when the task needs files, commands, a browser, or an installed application. Answer directly from the conversation when sufficient; use connected tools for app data. A website with no connected app is still yours to use in the computer's browser, now and in scheduled routines, so a missing connection alone is never a reason to decline. Do not inspect the computer just to prepare for an unrelated task. If what you are about to buy, send or submit differs from what the user confirmed, such as a changed item or total, show the difference and confirm again first.",
+          computerAvailable &&
+            "Use the computer only when the task needs files, commands, a browser, or an installed application. Answer directly from the conversation when sufficient; use connected tools for app data. A website with no connected app is still yours to use in the computer's browser, now and in scheduled routines, so a missing connection alone is never a reason to decline. Do not inspect the computer just to prepare for an unrelated task. If what you are about to buy, send or submit differs from what the user confirmed, such as a changed item or total, show the difference and confirm again first.",
           hostInstruction
             ? `${baseComputerInstruction} ${hostInstruction}`
             : dockerToolInstruction
               ? `${baseComputerInstruction} ${dockerToolInstruction}`
               : baseComputerInstruction,
-          diskNoteInstruction(storedComputer),
+          computerAvailable && diskNoteInstruction(storedComputer),
         ]
           .filter(Boolean)
           .join(" ");
-        const workspaceInstruction =
-          computerMode === "team"
+        const workspaceInstruction = !computerAvailable
+          ? ""
+          : computerMode === "team"
             ? `Your Team Computer home is ${teamBotWorkspaceDirectory(bot.id)}. Relative file paths and shell working directories start there. Put intentionally shared work under shared/. Other bots' folders are visible under bots/; treat them as their working areas.`
             : "This entire computer workspace is your private home. Relative file paths and shell working directories start at its root.";
 

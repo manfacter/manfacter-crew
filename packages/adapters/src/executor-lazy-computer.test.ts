@@ -5,6 +5,7 @@ import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
 import { createRunExecutor } from "./executor.js";
+import { NoneSandboxProvider } from "./none-sandbox.js";
 import * as runMessages from "./run-messages.js";
 
 const sink = createTestSink();
@@ -33,6 +34,8 @@ async function runRoutine(
     takeoverReleased?: boolean;
     native?: boolean;
     nativeUnavailable?: boolean;
+    noComputer?: boolean;
+    selectedComputerKind?: "none" | "e2b";
     toolFailure?: "abort" | "recover";
     attachments?: "file" | "image";
     steering?: boolean;
@@ -274,7 +277,7 @@ async function runRoutine(
     prisma: withEmptyModels(prisma),
     deploymentModelKey: "fake-deployment-key",
     runtime: { describe: () => ({ capabilities: { scripted: false } }), run: runtimeRun },
-    sandbox,
+    sandbox: options.noComputer ? new NoneSandboxProvider() : sandbox,
     home: { commit: vi.fn(async () => "fixture-revision") },
     memory: { read: async () => ({ documents: [] }) },
     memoryProviders: {
@@ -292,6 +295,10 @@ async function runRoutine(
       ? AbortSignal.any([options.shutdownSignal, shutdownRelay.signal])
       : undefined,
   };
+  if (options.selectedComputerKind)
+    Object.assign(executorInput.sandbox, {
+      provisionKind: async () => options.selectedComputerKind,
+    });
   const executor = createRunExecutor(
     executorInput as unknown as Parameters<typeof createRunExecutor>[0],
   );
@@ -351,6 +358,42 @@ afterEach(() => {
 });
 
 describe("run computer provisioning", () => {
+  it.each([undefined, "none"] as const)(
+    "offers connected work without an unavailable bot computer (%s)",
+    async (selectedComputerKind) => {
+      const { runtimeRun } = await runRoutine([], { noComputer: true, selectedComputerKind });
+      const request = runtimeRun.mock.calls[0]![0];
+      const names = request.tools.map((tool) => tool.name);
+      for (const name of [
+        "shell",
+        "read_file",
+        "write_file",
+        "list_files",
+        "attach_file",
+        "render_plot",
+        "request_takeover",
+      ]) {
+        expect(names).not.toContain(name);
+      }
+      expect(names).toEqual(expect.arrayContaining(["web_search", "web_fetch"]));
+      expect(request.instructions).toContain("Computer access is unavailable for this run.");
+      expect(request.instructions).not.toContain("You have a persistent sandbox");
+      expect(request.instructions).not.toContain(
+        "This entire computer workspace is your private home",
+      );
+      expect(provisionComputer).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps a per-user computer offered when the deployment has no default computer", async () => {
+    const { runtimeRun } = await runRoutine([], { noComputer: true, selectedComputerKind: "e2b" });
+    expect(runtimeRun.mock.calls[0]![0].tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining(["shell", "read_file", "list_files"]),
+    );
+    expect(runtimeRun.mock.calls[0]![0].instructions).toContain("You have a persistent sandbox");
+    expect(provisionComputer).not.toHaveBeenCalled();
+  });
+
   it("retries handed-off setup failures with durable attempt accounting and backoff", async () => {
     const onRunStarted = vi.fn();
     const { run, enqueue, runtimeRun, prisma } = await runRoutine([], {
