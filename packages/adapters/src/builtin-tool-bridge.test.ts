@@ -52,6 +52,7 @@ describe("built-in tool bridge", () => {
   it("lists a pinned tool set within a byte budget on an owner chat run", () => {
     const { listed, deferred } = partitionTools(ownerChat);
     expect(listed.map((tool) => tool.name).sort()).toEqual([
+      "archive_bot",
       "ask_user",
       "attach_file",
       "connect_app",
@@ -159,13 +160,16 @@ describe("built-in tool bridge", () => {
       semanticMemoryEnabled: false,
       messagingChannelRun: false,
       fleetManagement: false,
-      disabledBuiltinTools: ["message_bot"],
+      disabledBuiltinTools: ["message_bot", "archive_bot"],
     });
     const { listed, deferred } = partitionTools(granted);
     expect(listed.some((tool) => tool.name === "message_bot" || tool.name === "list_fleet")).toBe(
       false,
     );
-    expect(findTools(deferred, { names: ["message_bot", "list_fleet"] }).tools).toEqual([]);
+    expect(listed.some((tool) => tool.name === "archive_bot")).toBe(false);
+    expect(
+      findTools(deferred, { names: ["message_bot", "list_fleet", "archive_bot"] }).tools,
+    ).toEqual([]);
   });
 
   it("shows the real tool as activity", () => {

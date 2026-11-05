@@ -14,9 +14,10 @@ export const FIND_TOOL = "find_tool";
 export const USE_TOOL = "use_tool";
 const FIND_TOOL_LIMIT = 3;
 
-// Team setup and delivery are core workflows; bulky routine schemas remain deferred.
+// Team setup, retirement and delivery are core; bulky routine schemas remain deferred.
 export const TEAM_COORDINATION_TOOL_NAMES: ReadonlySet<string> = new Set([
   "spawn_bot",
+  "archive_bot",
   "list_fleet",
   "create_group",
   "update_group",

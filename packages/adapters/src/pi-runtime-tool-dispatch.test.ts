@@ -1109,16 +1109,18 @@ describe("Pi connector tool dispatch", () => {
     },
   );
 
-  it.each(["list_fleet", "message_bot"])(
+  it.each(["list_fleet", "message_bot", "archive_bot"])(
     "dispatches a large catalog's %s directly through the normal executor",
     async (name) => {
       const args =
         name === "list_fleet"
           ? {}
-          : {
-              confirm_name: "CRM analyst",
-              message: "Review the saved synthetic case.",
-            };
+          : name === "archive_bot"
+            ? { bot_id: "old-test-bot", confirm_name: "Old test bot" }
+            : {
+                confirm_name: "CRM analyst",
+                message: "Review the saved synthetic case.",
+              };
       fakeAgentState.invoke = { name, args };
       const executeTool = vi.fn(async () => ({ ok: true }));
       for await (const _event of new PiAgentRuntime().run(
