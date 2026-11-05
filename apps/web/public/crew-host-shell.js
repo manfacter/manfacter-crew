@@ -2,6 +2,7 @@ const status = document.getElementById("status");
 const frame = document.getElementById("crew");
 let expires = 0;
 let renewing = false;
+let sessionId;
 const response = await fetch("/api/auth/host-session/config", {
   cache: "no-store",
 });
@@ -20,11 +21,7 @@ function close() {
   frame.removeAttribute("src");
   status.hidden = false;
   status.textContent = "Abre Manfacter Crew desde tu sesión de Admin.";
-  void fetch("/api/auth/sign-out", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: "{}",
-  });
+  // Other Admin tabs share this cookie; the server expires it without a fresh host assertion.
 }
 window.addEventListener("message", async (event) => {
   if (event.source !== window.parent || event.origin !== origin) return;
@@ -54,7 +51,8 @@ window.addEventListener("message", async (event) => {
     const session = await result.json();
     expires = Date.parse(session.expiresAt);
     if (!Number.isFinite(expires)) throw new Error("Invalid host lease");
-    if (!frame.hasAttribute("src")) frame.src = "/app";
+    if (!frame.hasAttribute("src") || (sessionId && sessionId !== session.sessionId)) frame.src = "/app";
+    sessionId = session.sessionId;
     frame.hidden = false;
     status.hidden = true;
   } catch {

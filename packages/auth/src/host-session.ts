@@ -252,7 +252,7 @@ export function hostSession(prisma: PrismaClient, config: HostSessionConfig) {
                 );
           if (!session) throw invalid();
           await setSessionCookie(ctx, { session, user });
-          return ctx.json({ ok: true, expiresAt: expiresAt.toISOString() });
+          return ctx.json({ ok: true, expiresAt: expiresAt.toISOString(), sessionId: session.id });
         },
       ),
     },
