@@ -1152,6 +1152,76 @@ describe("Pi connector tool dispatch", () => {
     },
   );
 
+  it("finds a listed team action without exposing an ungranted name", async () => {
+    fakeAgentState.invoke = { name: "find_tool", args: { names: ["message_bot", "not_granted"] } };
+    for await (const _event of new PiAgentRuntime().run(
+      {
+        botId: "b",
+        threadId: "t",
+        runId: "find-listed",
+        prompt: "Find the team action",
+        instructions: "",
+        history: [],
+        tools: builtinAgentTools,
+        model: { provider: "test", id: "dispatch-test-model" },
+      },
+      { signal: new AbortController().signal },
+    )) {
+    }
+    expect(fakeAgentState.toolResult).toMatchObject({
+      details: {
+        tools: [{ name: "message_bot", inputSchema: expect.any(Object) }],
+        unknown: ["not_granted"],
+      },
+    });
+  });
+
+  it("finds a connected action by its exposed name and dispatches it through the original gateway", async () => {
+    const connected: ConnectorTool = {
+      name: "mcp__example__read record",
+      description: "Read the selected inventory record",
+      inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+      route: { connectorId: "mcp", toolName: "read record", resourceId: "hidden-resource" },
+    };
+    const exposed = "mcp__example__read_record";
+    const executeTool = vi.fn(async () => ({ ok: true }));
+    fakeAgentState.invoke = { name: "find_tool", args: { names: [exposed] } };
+    const request = {
+      botId: "b",
+      threadId: "t",
+      runId: "find-connected",
+      prompt: "Read inventory",
+      instructions: "",
+      history: [],
+      tools: [...builtinAgentTools, connected],
+      model: { provider: "test", id: "dispatch-test-model" },
+      executeTool,
+    };
+    for await (const _event of new PiAgentRuntime().run(request, {
+      signal: new AbortController().signal,
+    })) {
+    }
+    expect(fakeAgentState.toolResult).toMatchObject({
+      details: {
+        tools: [{ name: exposed, inputSchema: connected.inputSchema }],
+      },
+    });
+    expect(JSON.stringify(fakeAgentState.toolResult)).not.toContain("hidden-resource");
+    fakeAgentState.invoke = {
+      name: "use_tool",
+      args: { name: exposed, arguments: { id: "fixture-record" } },
+    };
+    for await (const _event of new PiAgentRuntime().run(
+      { ...request, runId: "use-connected" },
+      { signal: new AbortController().signal },
+    )) {
+    }
+    expect(executeTool.mock.calls[0]?.slice(0, 2)).toEqual([
+      connected.name,
+      { id: "fixture-record" },
+    ]);
+  });
+
   it("passes update_bot's read offset through the use_tool wrapper", async () => {
     const updateBotTool = builtinAgentTools.find((tool) => tool.name === "update_bot");
     if (!updateBotTool) throw new Error("missing update_bot");

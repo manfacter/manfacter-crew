@@ -406,7 +406,7 @@ it("cancellation in computer mode prevents further effects and model calls", asy
 
 it("runs the user's own screen tools only in computer mode", async () => {
   const input = request();
-  input.tools = builtinAgentTools.filter((t) => t.name === "user_computer_observe");
+  input.tools = builtinAgentTools;
   script([
     ["use_tool", { name: "user_computer_observe", arguments: { app: "Notes" } }],
     ["enter_computer_mode", { goal: "Look at Notes" }],
@@ -452,11 +452,11 @@ it("keeps the main model's own reasoning after computer work", async () => {
 });
 it("finds screen tools only in computer mode", async () => {
   const input = request();
-  input.tools = builtinAgentTools.filter((t) => ["open_path", "launch_app"].includes(t.name));
+  input.tools = builtinAgentTools;
   script([
-    ["find_tool", { query: "open a file" }],
+    ["find_tool", { names: ["open_path"] }],
     ["enter_computer_mode", { goal: "Open it" }],
-    ["find_tool", { query: "open a file" }],
+    ["find_tool", { names: ["open_path"] }],
     ["leave_computer_mode", { summary: "Done" }],
     [undefined],
   ]);
@@ -472,7 +472,10 @@ it("finds screen tools only in computer mode", async () => {
     )
     .at(-1)!
     .filter((message) => message.role === "toolResult" && message.toolName === "find_tool")
-    .map((message) => message.content.map((part) => part.text ?? "").join(""));
+    .map((message) => {
+      const result = JSON.parse(message.content.map((part) => part.text ?? "").join(""));
+      return result.tools.map((tool: { name: string }) => tool.name);
+    });
   expect(findResults).toHaveLength(2);
   expect(findResults[0]).not.toContain("open_path");
   expect(findResults[1]).toContain("open_path");

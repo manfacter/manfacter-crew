@@ -73,9 +73,11 @@ export function maxToolCallsPerTurn(env: NodeJS.ProcessEnv = process.env): numbe
 
 export function toAgentTools(toolDefs: readonly ConnectorTool[], host: ToolHost): AgentTool[] {
   const { listed, deferred } = partitionTools(toolDefs);
-  const tools = namedAgentTools(listed).map(({ tool, name }) =>
-    toAgentTool(tool, host, name, { deferred }),
+  const named = namedAgentTools(listed);
+  const catalog = [...named.map(({ tool, name }) => ({ ...tool, name })), ...deferred].filter(
+    (tool) => tool.name !== FIND_TOOL && tool.name !== USE_TOOL,
   );
+  const tools = named.map(({ tool, name }) => toAgentTool(tool, host, name, { catalog }));
   if (!deferred.length) return tools;
   const runnable = new Map(
     [...tools, ...deferred.map((tool) => toAgentTool(tool, host, tool.name, { viaUseTool: true }))]
@@ -322,7 +324,7 @@ function toAgentTool(
   tool: ConnectorTool,
   host: ToolHost,
   exposedName: string,
-  { deferred = [], viaUseTool = false }: { deferred?: ConnectorTool[]; viaUseTool?: boolean } = {},
+  { catalog = [], viaUseTool = false }: { catalog?: ConnectorTool[]; viaUseTool?: boolean } = {},
 ): AgentTool {
   return {
     name: exposedName,
@@ -550,8 +552,8 @@ function toAgentTool(
                 // Outside computer mode, screen tools are reached by entering it, not by search.
                 const findable =
                   host.computerModeAllowed && (host.depth !== 0 || !host.computerModeAllowed())
-                    ? deferred.filter((candidate) => !COMPUTER_MODE_TOOLS.has(candidate.name))
-                    : deferred;
+                    ? catalog.filter((candidate) => !COMPUTER_MODE_TOOLS.has(candidate.name))
+                    : catalog;
                 const found = findTools(findable, args);
                 return {
                   content: [{ type: "text", text: JSON.stringify(found) }],

@@ -124,7 +124,7 @@ function bridgeTools(deferred: readonly ConnectorTool[]): ConnectorTool[] {
   return [
     {
       name: FIND_TOOL,
-      description: `Get the parameters of built-in tools not in your tool list, including ones your instructions name. Call this before use_tool. Pass names for exact tools or query to search.\n${formatNameIndexText(groupedNames(searchEntries(deferred)))}`,
+      description: `Get the parameters of any tool available in this run, including listed actions and connected tools. Pass names for exact tools or query to search. Call this before use_tool. Additional built-in actions:\n${formatNameIndexText(groupedNames(searchEntries(deferred)))}`,
       inputSchema: {
         type: "object",
         properties: {
@@ -136,7 +136,7 @@ function bridgeTools(deferred: readonly ConnectorTool[]): ConnectorTool[] {
     },
     {
       name: USE_TOOL,
-      description: "Run a built-in tool whose parameters find_tool returned in this turn.",
+      description: "Run an available tool whose parameters find_tool returned in this turn.",
       inputSchema: {
         type: "object",
         properties: {
