@@ -26,7 +26,7 @@
     },
     "ImageUri": {
       "Type": "String",
-      "AllowedPattern": "[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9/_-]+@sha256:[a-f0-9]{64}"
+      "AllowedPattern": "[0-9]{12}[.]dkr[.]ecr[.][a-z0-9-]+[.]amazonaws[.]com/[a-z0-9/_-]+@sha256:[a-f0-9]{64}"
     },
     "AdminExecutionRoleArn": {
       "Type": "String",

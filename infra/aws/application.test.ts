@@ -37,4 +37,7 @@ it("keeps healthy tasks serving during deployments and rolls back failed release
   expect(service.DeploymentConfiguration).toEqual({ MinimumHealthyPercent: 100, MaximumPercent: 200, DeploymentCircuitBreaker: { Enable: true, Rollback: true } });
   expect(service.HealthCheckGracePeriodSeconds).toBeGreaterThanOrEqual(120);
   expect(t.Parameters.ImageUri.AllowedPattern).toContain("@sha256:");
+  const pattern = new RegExp(`^${t.Parameters.ImageUri.AllowedPattern}$`);
+  expect(pattern.test(`111111111111.dkr.ecr.eu-central-1.amazonaws.com/crew@sha256:${"a".repeat(64)}`)).toBe(true);
+  expect(pattern.test("crew:latest")).toBe(false);
 });
