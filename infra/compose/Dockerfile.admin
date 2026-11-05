@@ -11,6 +11,7 @@ COPY apps/api/src/routes/account.ts /app/apps/api/src/routes/account.ts
 COPY apps/api/src/routes/bots.ts /app/apps/api/src/routes/bots.ts
 COPY apps/api/src/localize-first-bots.ts /app/apps/api/src/localize-first-bots.ts
 COPY packages/adapters/src/executor.ts /app/packages/adapters/src/executor.ts
+COPY packages/adapters/src/tool-record-context.ts /app/packages/adapters/src/tool-record-context.ts
 COPY packages/adapters/src/run-instructions.ts /app/packages/adapters/src/run-instructions.ts
 COPY packages/adapters/src/keyless-http-web.ts /app/packages/adapters/src/keyless-http-web.ts
 COPY packages/adapters/src/web-ssrf.ts /app/packages/adapters/src/web-ssrf.ts

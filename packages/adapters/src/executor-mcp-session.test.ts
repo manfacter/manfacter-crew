@@ -246,7 +246,26 @@ async function executorHarness(server: ReturnType<typeof statefulMcpServer>) {
       findFirst: vi.fn(async () => server.install),
     },
     externalEffect: {
-      findMany: vi.fn(async () => []),
+      findMany: vi.fn(async (query?: { where?: { kind?: { startsWith?: string } } }) =>
+        query?.where?.kind?.startsWith === "mcp__"
+          ? [
+              {
+                kind: "mcp__example__create_record",
+                updatedAt: new Date("2026-01-01"),
+                result: {
+                  structuredContent: {
+                    record: {
+                      id: "prior-record-id",
+                      name: "Example",
+                      company_id: "prior-company-id",
+                      notes: "PRIVATE_CONNECTOR_BODY",
+                    },
+                  },
+                },
+              },
+            ]
+          : [],
+      ),
       findFirst: vi.fn(async () => null),
       findUnique: vi.fn(async () => null),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
@@ -326,6 +345,19 @@ async function executorHarness(server: ReturnType<typeof statefulMcpServer>) {
 }
 
 describe("run-scoped MCP sessions across attempts", () => {
+  it("carries prior record references into a new private owner turn without connector bodies", async () => {
+    const { executor, run, attempts } = await executorHarness(statefulMcpServer());
+    let instructions = "";
+    attempts.push(async function* (request: AgentRunRequest) {
+      instructions = request.instructions ?? "";
+      yield { type: "done", text: "Done" };
+    });
+    await executor.continueRun(run.id, "worker-1");
+    expect(instructions).toContain("prior-record-id");
+    expect(instructions).toContain("prior-company-id");
+    expect(instructions).not.toContain("PRIVATE_CONNECTOR_BODY");
+  });
+
   it("keeps the session when the attempt ends on an ask, so the resumed attempt resumes the paused execution", async () => {
     const server = statefulMcpServer();
     const { executor, run, attempts, toolResults, pauseRunForInput } =

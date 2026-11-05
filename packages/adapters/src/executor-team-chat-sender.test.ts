@@ -105,7 +105,7 @@ async function teamChatRun(input: {
     task: {
       findUniqueOrThrow: vi.fn(async () => ({
         id: run.taskId,
-        prompt: "Use @Private recipe and @Rakazo and @Interrogate",
+        prompt: "Use @Private recipe and @Manfacter Crew and @Interrogate",
       })),
     },
     connection: { findMany: vi.fn(async () => []) },
@@ -167,7 +167,19 @@ async function teamChatRun(input: {
     userActionApprovalRule: { findMany: vi.fn(async () => []) },
     userActionAutoReviewPreference: { findUnique: vi.fn(async () => ({ enabled: false })) },
     externalEffect: {
-      findMany: vi.fn(async () => []),
+      findMany: vi.fn(async (query?: { where?: { kind?: { startsWith?: string } } }) =>
+        query?.where?.kind?.startsWith === "mcp__"
+          ? [
+              {
+                kind: "mcp__example__create_record",
+                updatedAt: new Date("2026-01-01"),
+                result: {
+                  structuredContent: { record: { id: "PRIVATE_RECORD_REFERENCE" } },
+                },
+              },
+            ]
+          : [],
+      ),
       findFirst: vi.fn(async () => null),
       findUnique: vi.fn(async () => null),
     },
@@ -256,6 +268,7 @@ async function teamChatRun(input: {
   if (!request) throw new Error("the run never reached the model");
   const tools = request.tools.map((tool) => tool.name);
   const context = [request.instructions, request.prompt].join("\n");
+  expect(context).not.toContain("PRIVATE_RECORD_REFERENCE");
   return {
     tools,
     context,
@@ -310,7 +323,7 @@ describe("private skills in shared-channel prompts", () => {
     const result = await teamChatRun({ senders: [{ senderId: "member" }], sharedChannel: true });
     expect(result.context).not.toContain("PRIVATE_SKILL");
     expect(result.context).not.toContain("PRIVATE_TAUGHT");
-    expect(result.context).toContain("Use skill: Rakazo");
+    expect(result.context).toContain("Use skill: Manfacter Crew");
     expect(result.context).toContain("Use skill: Interrogate");
   });
 

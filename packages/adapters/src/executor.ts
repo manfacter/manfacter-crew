@@ -236,6 +236,7 @@ import {
 import { loadAgentTicketContext } from "./ticket-context.js";
 import { appendToolCompletionAudit } from "./tool-completion-audit.js";
 import { toolResultFingerprint } from "./tool-loop.js";
+import { loadToolRecordContext } from "./tool-record-context.js";
 import { restoreTurnCheckpoint } from "./turn-checkpoint.js";
 import { createWebProvider } from "./web-provider-factory.js";
 
@@ -1793,6 +1794,17 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           return true;
         };
 
+        // Record references stay in the owner's private one-to-one chat.
+        const recordContext =
+          nonOwnerChatRun || messagingChannelRun || thread.groupId || thread.externalConversationId
+            ? ""
+            : await loadToolRecordContext(deps.prisma, {
+                userId: run.userId,
+                spaceId: run.spaceId,
+                botId: bot.id,
+                threadId: thread.id,
+              });
+        const privateMemoryContext = [memoryContext, recordContext].filter(Boolean).join("\n\n");
         try {
           if (checkpointLoadError) throw checkpointLoadError;
           const runtimeEvents = deps.runtime.run(
@@ -1830,8 +1842,8 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
                   ? [groupContext, GROUP_UNADDRESSED_REPLY_GUIDANCE].filter(Boolean).join("\n")
                   : groupContext,
                 messagingContext,
-                redactedMemoryContext: memoryContext
-                  ? redactSecrets(memoryContext, runSecrets)
+                redactedMemoryContext: privateMemoryContext
+                  ? redactSecrets(privateMemoryContext, runSecrets)
                   : undefined,
                 redactedScratchpadContext: scratchpadContext
                   ? redactSecrets(scratchpadContext, runSecrets)
