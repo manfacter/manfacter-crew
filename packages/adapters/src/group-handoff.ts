@@ -34,8 +34,13 @@ export async function handoffToGroupBot(
   input: { bot_id?: string; confirm_name?: string; message: string; deliveryKey?: string },
 ) {
   const text = input.message.trim();
-  if (!text || text.length > BOT_MESSAGE_MAX_LENGTH) {
+  if (!text) {
     return { error: `message must contain 1 to ${BOT_MESSAGE_MAX_LENGTH} characters` } as const;
+  }
+  if (text.length > BOT_MESSAGE_MAX_LENGTH) {
+    return {
+      error: `message has ${text.length} characters; maximum is ${BOT_MESSAGE_MAX_LENGTH}. Retry with a concise task, acceptance checks and record links. The recipient can open the records; do not paste their contents.`,
+    } as const;
   }
   const committed = await deps.prisma.$transaction(async (tx) => {
     try {

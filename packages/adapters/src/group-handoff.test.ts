@@ -1,6 +1,8 @@
+import { BOT_MESSAGE_MAX_LENGTH } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { RunHistoryWriteError } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
+import { builtinAgentTools } from "./builtin-tools.js";
 import { handoffToGroupBot, loadBotGroupDirectory } from "./group-handoff.js";
 
 const run = {
@@ -71,6 +73,24 @@ function harness(
 }
 
 describe("group handoff ownership", () => {
+  it("advertises the enforced message length to the model", () => {
+    for (const name of ["message_bot", "handoff_to_bot"]) {
+      expect(builtinAgentTools.find((tool) => tool.name === name)?.inputSchema).toMatchObject({
+        properties: { message: { minLength: 1, maxLength: BOT_MESSAGE_MAX_LENGTH } },
+      });
+    }
+  });
+  it("reports an oversized handoff without recording or starting work", async () => {
+    const { deps, runCreate, messageCreate } = harness([]);
+    const result = await handoffToGroupBot(deps as never, run, "group-1", {
+      bot_id: "bot-b",
+      message: "x".repeat(BOT_MESSAGE_MAX_LENGTH + 1),
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining("8001") });
+    expect(result).toMatchObject({ error: expect.stringContaining("8000") });
+    expect(runCreate).not.toHaveBeenCalled();
+    expect(messageCreate).not.toHaveBeenCalled();
+  });
   it("marks a new ownership transfer as a follow-up with a chain hop", async () => {
     const { deps, messageCreate, runCreate } = harness([{ kind: "text", text: "user request" }]);
 

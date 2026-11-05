@@ -22,6 +22,7 @@ import {
   TICKET_STATUSES,
   TICKET_TITLE_MAX_LENGTH,
 } from "@rakazo/contracts";
+import { BOT_MESSAGE_MAX_LENGTH } from "@rakazo/core";
 import { z } from "zod";
 import { allowPrivateHttpSecretOrigins } from "./bot-secrets.js";
 import { BROWSER_ACT_KINDS } from "./browser-tools.js";
@@ -1694,7 +1695,13 @@ export const builtinAgentTools: ConnectorTool[] = [
           type: "string",
           description: "Exact name of the target bot when bot_id is omitted.",
         },
-        message: { type: "string", description: "What to send." },
+        message: {
+          type: "string",
+          minLength: 1,
+          maxLength: BOT_MESSAGE_MAX_LENGTH,
+          description:
+            "What to send. Keep the task and acceptance checks concise; link records instead of pasting their contents.",
+        },
         intent: {
           type: "string",
           enum: ["request", "result", "question", "status", "fyi"],
@@ -1721,7 +1728,13 @@ export const builtinAgentTools: ConnectorTool[] = [
           type: "string",
           description: "Exact name of the target member when bot_id is omitted.",
         },
-        message: { type: "string", description: "What the receiving bot should do next." },
+        message: {
+          type: "string",
+          minLength: 1,
+          maxLength: BOT_MESSAGE_MAX_LENGTH,
+          description:
+            "What the receiving bot should do next. Include the task, acceptance checks and record links; the recipient should open the records rather than receive pasted copies.",
+        },
       },
       required: ["message"],
     },
