@@ -1612,6 +1612,30 @@ describe("MCP connector session cache", () => {
     await connector.close();
   });
 
+  it("refuses a different user's resource even when its route and bot ID are supplied directly", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const prisma = {
+      mcpServer: { findFirst: vi.fn().mockResolvedValue(null) },
+      botMcpServer: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+    const events = [];
+    for await (const event of connector.execute({
+      tool: "mcp__demo__list_sites", args: {}, executionId: "forged-owner-route",
+      route: { connectorId: "mcp", resourceId: "admin-resource", toolName: "list_sites" },
+    }, { spaceId: "w1", userId: "sdr-user", botId: "admin-bot" } as never)) events.push(event);
+    expect(events).toMatchObject([{ type: "error" }]);
+    expect(prisma.botMcpServer.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: "sdr-user", server: expect.objectContaining({ userId: "sdr-user" }) }),
+    }));
+    expect(prisma.mcpServer.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: "sdr-user", id: "admin-resource", allBots: true }),
+    }));
+    expect(fetch).not.toHaveBeenCalled();
+    await connector.close();
+  });
+
   it.each([
     ["renews it and connects", { access_token: "fake-renewed", token_type: "bearer" }, true],
     ["asks for a reconnect when it cannot be renewed", undefined, false],
