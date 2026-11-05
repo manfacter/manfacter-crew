@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-type Transition = { update: () => Promise<void>; done: () => void; skip: () => void };
+type Transition = {
+  update: () => Promise<void>;
+  done: () => void;
+  skip: () => void;
+  skipTransition: ReturnType<typeof vi.fn>;
+};
 
 /** A fake document whose view transitions run their update only when told to. */
 function stubTransitions() {
@@ -9,6 +14,7 @@ function stubTransitions() {
   vi.stubGlobal("window", {
     matchMedia: () => ({ matches: false }),
     setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+    clearTimeout: (timer: ReturnType<typeof setTimeout>) => clearTimeout(timer),
   });
   vi.stubGlobal("document", {
     documentElement: {
@@ -24,8 +30,9 @@ function stubTransitions() {
         done = resolve;
         skip = () => reject(new Error("Transition skipped"));
       });
-      transitions.push({ update, done, skip });
-      return { finished };
+      const skipTransition = vi.fn(skip);
+      transitions.push({ update, done, skip, skipTransition });
+      return { finished, skipTransition };
     },
   });
   return { transitions, classes };
@@ -38,6 +45,22 @@ afterEach(() => {
 });
 
 describe("switching spaces in place", () => {
+  it("skips a stalled capture so navigation is not held behind its overlay", async () => {
+    vi.useFakeTimers();
+    const { transitions, classes } = stubTransitions();
+    const { remountShellForSpace } = await import("./space-switch");
+    const commit = vi.fn(() => true);
+    remountShellForSpace(commit);
+    expect(commit).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(transitions[0]!.skipTransition).toHaveBeenCalledOnce();
+    expect(classes.has("rk-space-switching")).toBe(false);
+    const update = transitions[0]!.update();
+    await vi.advanceTimersByTimeAsync(1_500);
+    await update;
+    expect(commit).toHaveBeenCalledOnce();
+  });
+
   it("releases a skipped transition without an unhandled rejection", async () => {
     const { transitions, classes } = stubTransitions();
     const { remountShellForSpace } = await import("./space-switch");
@@ -55,6 +78,7 @@ describe("switching spaces in place", () => {
     remountShellForSpace(commit);
     await transitions[0]!.update();
     expect(commit).toHaveBeenCalledOnce();
+    transitions[0]!.done();
   });
 
   it("releases each held screen with its own shell, even when switches overlap", async () => {

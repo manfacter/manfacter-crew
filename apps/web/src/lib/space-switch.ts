@@ -65,7 +65,10 @@ export function remountShellForSpace(commit: () => boolean): void {
     if (remounted) await ready;
     if (shellReady === resolveReady) shellReady = null;
   });
+  // A stalled browser capture must not keep an input-blocking overlay over navigation.
+  const timeout = window.setTimeout(() => transition.skipTransition(), READY_TIMEOUT_MS + 500);
   const release = () => {
+    window.clearTimeout(timeout);
     activeTransitions -= 1;
     if (activeTransitions === 0) root.classList.remove(SWITCHING_CLASS);
   };
