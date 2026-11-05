@@ -8,6 +8,7 @@ const activityLabels = {
   admin_find_records: msg({ id: "crew.activity.crm", message: "Consulting CRM records" }),
   admin_create_company: msg({ id: "crew.activity.company", message: "Saving a company" }),
   admin_create_contact: msg({ id: "crew.activity.contact", message: "Saving a contact" }),
+  admin_update_crm_record: msg({ id: "crew.activity.record", message: "Correcting a CRM record" }),
   admin_create_opportunity: msg({
     id: "crew.activity.opportunity",
     message: "Creating an opportunity",

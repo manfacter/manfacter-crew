@@ -7361,3 +7361,7 @@ msgstr "Planteando una pregunta"
 #. js-lingui-explicit-id
 msgid "crew.activity.action"
 msgstr "Ejecutando una acción"
+
+#. js-lingui-explicit-id
+msgid "crew.activity.record"
+msgstr "Corrigiendo una ficha del CRM"

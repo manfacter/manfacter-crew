@@ -15,7 +15,7 @@ describe("lingui catalogs", () => {
       filename,
     });
     const activityIds = Object.keys(spanish).filter((id) => id.startsWith("crew.activity."));
-    expect(activityIds).toHaveLength(20);
+    expect(activityIds).toHaveLength(21);
     for (const id of activityIds) {
       expect(spanish[id]?.translation, id).toBeTruthy();
     }

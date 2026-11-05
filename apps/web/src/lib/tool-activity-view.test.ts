@@ -21,7 +21,10 @@ const narration: MessageBlock = { kind: "progress", text: "Let me check that." }
 
 it("labels actual actions, preserves unknown labels and follows the active locale", () => {
   const previous = i18n.locale;
-  i18n.load("es", { "crew.activity.draft": "Guardando un borrador de correo" });
+  i18n.load("es", {
+    "crew.activity.draft": "Guardando un borrador de correo",
+    "crew.activity.record": "Corrigiendo una ficha del CRM",
+  });
   i18n.activate("es");
   try {
     expect(toolStepLabel("Mcp example admin save draft")).toBe("Guardando un borrador de correo");
@@ -30,6 +33,9 @@ it("labels actual actions, preserves unknown labels and follows the active local
       "Guardando un borrador de correo",
     );
     expect(toolStepLabel("A custom action")).toBe("A custom action");
+    expect(toolStepLabel("mcp__example__admin_update_crm_record")).toBe(
+      "Corrigiendo una ficha del CRM",
+    );
     expect(toolStepLabel("constructor")).toBe("constructor");
   } finally {
     i18n.load(previous || "en", {});
