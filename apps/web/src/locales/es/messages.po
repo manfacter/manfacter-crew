@@ -2782,6 +2782,11 @@ msgstr "Desactivar una herramienta"
 msgid "Disabled"
 msgstr "Desactivado"
 
+#. js-lingui-explicit-id
+#: src/lib/model-catalog.ts
+msgid "Disabled"
+msgstr "Desactivado"
+
 #: src/components/composer/HoldToTalk.tsx
 msgid "Discard recording"
 msgstr "Descartar grabación"
