@@ -18,7 +18,7 @@ export function useReportedUiLocale(
     const report = () => {
       // Lingui announces a change before the app records it, so read its own locale.
       const locale = i18n.locale;
-      if (!locale || locale === (reported.current ?? saved)) return;
+      if (!locale || locale === reported.current) return;
       reported.current = locale;
       void reportUiLocale(
         () => normalizeUiLocale(i18n.locale),

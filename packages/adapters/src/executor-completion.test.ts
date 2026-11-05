@@ -1,5 +1,5 @@
 import { ModelOutputError } from "@rakazo/adapter-kit";
-import { MISSING_TOOL_FINAL_RESPONSE_ERROR } from "@rakazo/core";
+import { CHIEF_INSTRUCTIONS, MISSING_TOOL_FINAL_RESPONSE_ERROR } from "@rakazo/core";
 import { describe, expect, it } from "vitest";
 import { runIdentityInstruction } from "./run-instructions.js";
 import { mayOpenModelStream } from "./run-lifecycle.js";
@@ -547,6 +547,15 @@ describe("runReplyGuidance", () => {
     expect(prompt).toContain("Ada\nReads and sorts mail.");
     expect(prompt).toContain("Teammates see only the profile above.");
     expect(prompt.endsWith("Never send mail without asking.")).toBe(true);
+  });
+
+  it("gives legacy coordinators their default role without replacing custom instructions", () => {
+    const bot = { name: "Jefe de equipo", spawnKey: "onboarding:first", instructions: " " };
+    expect(runIdentityInstruction(bot, "user")).toContain(CHIEF_INSTRUCTIONS);
+    expect(
+      runIdentityInstruction({ ...bot, instructions: "My own coordinator role." }, "user"),
+    ).not.toContain(CHIEF_INSTRUCTIONS);
+    expect(runIdentityInstruction({ name: "Analyst" }, "user")).toBe("Analyst");
   });
 
   it("does not repeat text that older bots saved as both fields", () => {

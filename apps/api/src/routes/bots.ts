@@ -29,7 +29,7 @@ import type {
   VaultPutInput,
 } from "@rakazo/contracts";
 import { BotSecretAuth, resolveBotAvatarSet } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES, displayName } from "@rakazo/core";
+import { ACTIVE_RUN_STATUSES, conversationLanguageInstruction, displayName } from "@rakazo/core";
 import type { Prisma } from "@rakazo/db";
 import {
   BotSectionNameConflictError,
@@ -212,12 +212,14 @@ export function botIntroPrompt(input: {
   userName: string;
   spaceName: string | null;
   disabledBuiltinTools: readonly string[];
+  locale?: string | null;
 }): string {
   const canAsk = !input.disabledBuiltinTools.includes("ask_user");
   const canUpdate = !input.disabledBuiltinTools.includes("update_bot");
   const options =
     "two to four short options that fit your name, anything your description or instructions already say, and what you know about them, never a stock list";
   return [
+    conversationLanguageInstruction(input.locale),
     [
       "You were just created.",
       input.userName ? `${input.userName} made you.` : undefined,
@@ -252,7 +254,10 @@ export async function enqueueBotIntroRun(deps: RouterDeps, actor: Actor, bot: Bo
   if (deps.env.agentRuntime === "scripted") return;
   if ((await modelSetup(deps, actor)).needsModel) return;
   const [user, space] = await Promise.all([
-    deps.prisma.user.findUnique({ where: { id: actor.userId }, select: { name: true } }),
+    deps.prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { name: true, locale: true },
+    }),
     deps.prisma.space.findUnique({
       where: { id: actor.spaceId },
       select: { name: true, isDefault: true },
@@ -262,6 +267,7 @@ export async function enqueueBotIntroRun(deps: RouterDeps, actor: Actor, bot: Bo
     userName: displayName(user?.name, ""),
     spaceName: space && !space.isDefault ? space.name.trim() || null : null,
     disabledBuiltinTools: bot.disabledBuiltinTools ?? [],
+    locale: user?.locale,
   });
   const run = await deps.prisma.$transaction(async (tx) => {
     // An idempotent create (spawnKey) returns the bot it already made; it gets one intro.

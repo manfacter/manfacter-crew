@@ -10,15 +10,11 @@ const PRECACHE_PLACEHOLDER = "__RAKAZO_SW_PRECACHE__";
 const CACHE_PLACEHOLDER = "__RAKAZO_SW_CACHE__";
 
 export function webManifest() {
-  const icons = [192, 512].map((size) => ({
-    src: `/icon-${size}.png`,
-    sizes: `${size}x${size}`,
-    type: "image/png",
-  }));
+  const icons = [{ src: "/crew.svg", sizes: "any", type: "image/svg+xml" }];
   return {
     id: "/",
-    name: "Rakazo",
-    short_name: "Rakazo",
+    name: "Manfacter Crew",
+    short_name: "Crew",
     description: "Your team of always-on agents.",
     start_url: "/",
     scope: "/",

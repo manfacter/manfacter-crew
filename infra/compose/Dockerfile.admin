@@ -1,9 +1,17 @@
 FROM ghcr.io/elie222/rakazo/app@sha256:05f9098f6f8a67fafc3e9681b880ed835b3945b0f378b6562392e48908f2af22
 USER root
+COPY packages/core/src /app/packages/core/src
+COPY packages/contracts/src/openai-compatible-ui.ts /app/packages/contracts/src/openai-compatible-ui.ts
 COPY packages/auth/src/host-session.ts /app/packages/auth/src/host-session.ts
 COPY packages/auth/src/index.ts /app/packages/auth/src/index.ts
 COPY apps/api/src/env.ts /app/apps/api/src/env.ts
 COPY apps/api/src/app.ts /app/apps/api/src/app.ts
+COPY apps/api/src/routes/account.ts /app/apps/api/src/routes/account.ts
+COPY apps/api/src/routes/bots.ts /app/apps/api/src/routes/bots.ts
+COPY apps/api/src/localize-first-bots.ts /app/apps/api/src/localize-first-bots.ts
+COPY packages/adapters/src/executor.ts /app/packages/adapters/src/executor.ts
+COPY packages/adapters/src/run-instructions.ts /app/packages/adapters/src/run-instructions.ts
+COPY packages/adapters/src/builtin-skills.ts /app/packages/adapters/src/builtin-skills.ts
 COPY packages/adapters/src/auto-review.ts /app/packages/adapters/src/auto-review.ts
 COPY packages/adapters/src/builtin-tool-bridge.ts /app/packages/adapters/src/builtin-tool-bridge.ts
 COPY packages/adapters/src/pi-runtime-tools.ts /app/packages/adapters/src/pi-runtime-tools.ts
@@ -12,6 +20,11 @@ COPY packages/adapters/src/pi-openai-compatible-provider.ts /app/packages/adapte
 COPY packages/adapters/src/pi-runtime-limits.ts /app/packages/adapters/src/pi-runtime-limits.ts
 COPY packages/adapters/src/pi-runtime-stream.ts /app/packages/adapters/src/pi-runtime-stream.ts
 COPY packages/adapters/src/pi-runtime-fallback.ts /app/packages/adapters/src/pi-runtime-fallback.ts
+COPY apps/web/src /app/apps/web/src
+COPY apps/web/index.html /app/apps/web/index.html
+COPY apps/web/public/crew.svg /app/apps/web/public/crew.svg
+WORKDIR /app/apps/web
+RUN pnpm build
 COPY apps/web/public/crew-host-shell.* /app/apps/web/dist/
 WORKDIR /app/apps/api
 RUN node ../../scripts/build-server.mjs src/index.ts

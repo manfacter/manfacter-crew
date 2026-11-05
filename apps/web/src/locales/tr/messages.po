@@ -718,7 +718,7 @@ msgid "Allow once"
 msgstr "Bir kez izin ver"
 
 #: src/lib/dictation.ts
-msgid "Allow Rakazo to use Speech Recognition and the microphone in System Settings."
+msgid "Allow Manfacter Crew to use Speech Recognition and the microphone in System Settings."
 msgstr ""
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
@@ -766,8 +766,8 @@ msgid "An API key is stored for this provider, not a subscription sign-in."
 msgstr "Bu sağlayıcı için abonelik girişi değil, bir API anahtarı saklanıyor."
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "An existing Honcho peer to read from. Rakazo never writes to it."
-msgstr "Verilerin okunacağı mevcut bir Honcho eşi. Rakazo bu eşe asla veri yazmaz."
+msgid "An existing Honcho peer to read from. Manfacter Crew never writes to it."
+msgstr "Verilerin okunacağı mevcut bir Honcho eşi. Manfacter Crew bu eşe asla veri yazmaz."
 
 #: src/lib/agent-import-errors.ts
 msgid "An imported API key could not be checked. Try again."
@@ -1413,7 +1413,7 @@ msgstr "Klasör seç"
 
 #: src/components/ModelCredits.tsx
 #: src/components/SubscriptionGate.tsx
-msgid "Choose how to use Rakazo"
+msgid "Choose how to use Manfacter Crew"
 msgstr ""
 
 #: src/components/vault/VaultItemEditor.tsx
@@ -1733,8 +1733,8 @@ msgstr "Önce bu modelin sağlayıcısını bağla."
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
-msgid "Connect your own API key in Models or choose Rakazo credits in Billing."
-msgstr "Modeller bölümünde kendi API anahtarınızı bağlayın veya Faturalandırma'da Rakazo kredilerini seçin."
+msgid "Connect your own API key in Models or choose Manfacter Crew credits in Billing."
+msgstr "Modeller bölümünde kendi API anahtarınızı bağlayın veya Faturalandırma'da Manfacter Crew kredilerini seçin."
 
 #: src/components/ComputerDeviceSettings.tsx
 #: src/components/integrations/IntegrationSetup.tsx
@@ -2499,8 +2499,8 @@ msgid "Create space"
 msgstr ""
 
 #: src/pages/Auth.tsx
-msgid "Create your Rakazo"
-msgstr "Rakazo hesabını oluştur"
+msgid "Create your Manfacter Crew"
+msgstr "Manfacter Crew hesabını oluştur"
 
 #: src/components/AskCard.tsx
 msgid "Created"
@@ -2973,7 +2973,7 @@ msgid "Ends {day}"
 msgstr ""
 
 #: src/components/GitHubStarPrompt.tsx
-msgid "Enjoying Rakazo?"
+msgid "Enjoying Manfacter Crew?"
 msgstr ""
 
 #: src/lib/user-error.ts
@@ -3478,7 +3478,7 @@ msgid "How to check"
 msgstr "Nasıl kontrol edilir"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
+msgid "How will you use Manfacter Crew?"
 msgstr ""
 
 #: src/pages/shell/computer-release-actions.tsx
@@ -4521,8 +4521,8 @@ msgid "Not imported"
 msgstr "İçe aktarılmadı"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Rakazo kataloğunda yok"
+msgid "Not in Manfacter Crew's catalog"
+msgstr "Manfacter Crew kataloğunda yok"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Not in the plugin catalog"
@@ -4535,12 +4535,12 @@ msgstr "Şimdi değil"
 
 #: src/pages/shell/agent-import.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "Rakazo'da desteklenmiyor"
+msgid "Not supported in Manfacter Crew"
+msgstr "Manfacter Crew'da desteklenmiyor"
 
 #: src/pages/shell/agent-import.tsx
-msgid "Not used by Rakazo"
-msgstr "Rakazo tarafından kullanılmıyor"
+msgid "Not used by Manfacter Crew"
+msgstr "Manfacter Crew tarafından kullanılmıyor"
 
 #: src/components/McpServerHealthLine.tsx
 msgid "Not working"
@@ -4684,8 +4684,8 @@ msgstr "Gezinmeyi aç"
 
 #: src/components/pages/PublicPageShell.tsx
 #: src/pages/SharedPage.tsx
-msgid "Open Rakazo"
-msgstr "Rakazo'yu aç"
+msgid "Open Manfacter Crew"
+msgstr "Manfacter Crew'yu aç"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Open work"
@@ -4862,8 +4862,8 @@ msgid "Paste a replacement key"
 msgstr "Yeni bir anahtar yapıştır"
 
 #: src/pages/model-settings/compatible-model-fields.tsx
-msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
-msgstr "Sunucundaki OpenAI uyumlu adresi yapıştır. Gerekirse Rakazo /v1 ekler."
+msgid "Paste the OpenAI-compatible address from your server. Manfacter Crew adds /v1 if needed."
+msgstr "Sunucundaki OpenAI uyumlu adresi yapıştır. Gerekirse Manfacter Crew /v1 ekler."
 
 #: src/pages/shell/agent-import.tsx
 msgid "Paste the reply"
@@ -5055,16 +5055,16 @@ msgstr "Kuyrukta"
 
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
-msgid "Rakazo"
-msgstr "Rakazo"
+msgid "Manfacter Crew"
+msgstr "Manfacter Crew"
 
 #: src/components/ModelCredits.tsx
 #: src/pages/Onboarding.tsx
-msgid "Rakazo credits"
+msgid "Manfacter Crew credits"
 msgstr ""
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
+msgid "rakazo-shared and IDs starting with bot- are reserved for Manfacter Crew."
 msgstr ""
 
 #: src/pages/shell/message-hover-actions.tsx
@@ -5485,8 +5485,8 @@ msgstr ""
 
 #: src/pages/McpOAuthCallback.tsx
 #: src/pages/SlackInstallCallback.tsx
-msgid "Return to Rakazo"
-msgstr "Rakazo'ya dön"
+msgid "Return to Manfacter Crew"
+msgstr "Manfacter Crew'ya dön"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Review provider settings and test again."
@@ -5963,8 +5963,8 @@ msgid "Sign in at <0>{0}</0>, then paste the code here."
 msgstr "<0>{0}</0> adresinde oturum açın, ardından kodu buraya yapıştırın."
 
 #: src/pages/Auth.tsx
-msgid "Sign in to Rakazo"
-msgstr "Rakazo'da oturum aç"
+msgid "Sign in to Manfacter Crew"
+msgstr "Manfacter Crew'da oturum aç"
 
 #: src/lib/user-error.ts
 msgid "Sign in to your existing account to link SSO"
@@ -6244,8 +6244,8 @@ msgid "Subscribe for {price} / month"
 msgstr "Aylık {price} ile abone ol"
 
 #: src/components/ModelCredits.tsx
-msgid "Subscribe to Rakazo credits"
-msgstr "Rakazo kredilerine abone ol"
+msgid "Subscribe to Manfacter Crew credits"
+msgstr "Manfacter Crew kredilerine abone ol"
 
 #: src/components/ModelCredits.tsx
 msgid "Subscribe with your own AI"
@@ -6594,8 +6594,8 @@ msgid "This server's tool result does not fit the model. Turn off Keep tool resu
 msgstr ""
 
 #: src/pages/model-settings/connection-controls.tsx
-msgid "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider."
-msgstr "Bu abonelik girişi Rakazo'da henüz kullanılamıyor. Bir dağıtım kimlik bilgisi kullan veya başka bir sağlayıcı seç."
+msgid "This subscription sign-in is not available in Manfacter Crew yet. Use a deployment credential or choose another provider."
+msgstr "Bu abonelik girişi Manfacter Crew'da henüz kullanılamıyor. Bir dağıtım kimlik bilgisi kullan veya başka bir sağlayıcı seç."
 
 #: src/pages/Artifacts.tsx
 msgid "This week"
@@ -6903,7 +6903,7 @@ msgid "Use Protected input for passwords."
 msgstr ""
 
 #: src/components/ModelCredits.tsx
-msgid "Use Rakazo credits"
+msgid "Use Manfacter Crew credits"
 msgstr ""
 
 #: src/pages/model-settings/space-bots-model.tsx
@@ -7051,7 +7051,7 @@ msgid "Weekends"
 msgstr "Hafta sonları"
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
+msgid "Welcome to Manfacter Crew"
 msgstr ""
 
 #: src/pages/shell/dialogs.tsx
@@ -7063,7 +7063,7 @@ msgid "What can this space use?"
 msgstr ""
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
+msgid "What do you most want Manfacter Crew to help with?"
 msgstr ""
 
 #: src/pages/shell/message-cards.tsx

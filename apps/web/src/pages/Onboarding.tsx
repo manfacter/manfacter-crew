@@ -20,10 +20,14 @@ import {
   parseModelMaxTokens,
 } from "@rakazo/contracts";
 import {
+  CHIEF_INSTRUCTIONS,
   COMPATIBLE_THINKING_LEVELS,
+  chiefName,
   clampCatalogThinkingLevel,
   createModelProbe,
+  FIRST_BOT_SPAWN_KEY,
   initialModelProbeState,
+  isFirstBot,
   pickCatalogModelId,
   popularModelProvidersFirst,
 } from "@rakazo/core";
@@ -52,6 +56,7 @@ import { ModelHeadersEditor } from "../components/ModelHeadersEditor";
 import { PageLoading } from "../components/PageLoading";
 import { SignupSurvey } from "../components/SignupSurvey";
 import { useCopyText } from "../lib/copy-text";
+import { getActiveUiLocale } from "../lib/i18n";
 import { providerDisplayName } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry } from "../lib/model-auth";
 import type { ModelPreflightFailure } from "../lib/model-connection-preflight";
@@ -68,7 +73,7 @@ import { errorText } from "../lib/user-error";
 import { CompatibleKeyField } from "./model-settings/compatible-key-field";
 
 const CUSTOM_MODEL_OPTION = "__rakazo_custom_model__";
-/** Rakazo credits sit among the providers as the one choice that needs no account of its own. */
+/** Manfacter Crew credits sit among the providers as the one choice that needs no account of its own. */
 const CREDITS_OPTION = "__rakazo_credits__";
 /** A provider whose catalog entry offers both sign-in and a key appears once per way to connect. */
 type ProviderAuth = "sign-in" | "key";
@@ -85,8 +90,6 @@ const MAIN_PROVIDER_OPTIONS: ReadonlyArray<{ provider: string; auth?: ProviderAu
 function providerOptionValue(provider: string, auth?: ProviderAuth): string {
   return auth ? `${provider}:${auth}` : provider;
 }
-const FIRST_BOT_NAME = "Chief";
-const FIRST_BOT_SPAWN_KEY = "onboarding:first";
 const FIRST_BOT_LOCK = "rakazo:onboarding-first-bot";
 
 /** Survives StrictMode remounts; concurrent first-bot creates share one in-flight attempt. */
@@ -98,7 +101,7 @@ function findFirstBot(
   const bySpawnKey = bots.find((bot) => bot.spawnKey === FIRST_BOT_SPAWN_KEY);
   if (bySpawnKey) return { id: bySpawnKey.id };
   // Legacy first-run Chief created before spawnKey was set.
-  const byName = bots.find((bot) => bot.name === FIRST_BOT_NAME);
+  const byName = bots.find(isFirstBot);
   return byName ? { id: byName.id } : undefined;
 }
 
@@ -106,11 +109,13 @@ async function createOrReuseFirstBot(): Promise<{ id: string }> {
   const existing = await rpc.bots.list();
   const reuse = findFirstBot(existing);
   if (reuse) return reuse;
+  await rpc.preferences.update({ locale: getActiveUiLocale() });
   try {
     const created = await rpc.bots.create({
-      name: FIRST_BOT_NAME,
+      name: chiefName(getActiveUiLocale()),
       description: "",
-      instructions: "",
+      instructions: CHIEF_INSTRUCTIONS,
+      fleetManagement: true,
       notifyOnFinish: true,
       spawnKey: FIRST_BOT_SPAWN_KEY,
     });
@@ -282,7 +287,7 @@ export function OnboardingPage() {
       return providerDisplayName(id, byId.get(id)?.providerName ?? id, auth);
     };
     const main = [
-      ...(billingEnabled ? [{ value: CREDITS_OPTION, label: t`Rakazo credits` }] : []),
+      ...(billingEnabled ? [{ value: CREDITS_OPTION, label: t`Manfacter Crew credits` }] : []),
       ...MAIN_PROVIDER_OPTIONS.filter((option) => byId.has(option.provider)).map((option) => ({
         value: providerOptionValue(option.provider, option.auth),
         label: optionLabel(option.provider, option.auth),

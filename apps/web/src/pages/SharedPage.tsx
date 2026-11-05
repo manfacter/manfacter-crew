@@ -48,7 +48,7 @@ function SharedPageBody() {
     return (
       <main className="grid min-h-dvh place-items-center bg-background px-6 text-center">
         <div className="flex max-w-[360px] flex-col items-center gap-3">
-          <img src="/favicon-32x32.png" alt="" className="size-8 rounded-full" />
+          <img src="/crew.svg" alt="" className="size-8 rounded-full" />
           <h1 className="text-[18px] leading-6 font-medium text-foreground">
             <Trans>This page isn't available</Trans>
           </h1>
@@ -56,7 +56,7 @@ function SharedPageBody() {
             <Trans>The owner may have turned off its link or deleted it.</Trans>
           </p>
           <a href="/" className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-1`}>
-            <Trans>Open Rakazo</Trans>
+            <Trans>Open Manfacter Crew</Trans>
           </a>
         </div>
       </main>

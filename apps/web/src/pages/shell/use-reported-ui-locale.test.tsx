@@ -48,8 +48,10 @@ it("saves the app language when the account has another, then each one picked", 
   expect(update).toHaveBeenCalledTimes(2);
 });
 
-it("leaves a matching account and an older server alone", async () => {
+it("reports a matching locale once to reconcile default coordinator names, but leaves older servers alone", async () => {
   act(() => root.render(<Reporter saved="es" />));
+  expect(update).toHaveBeenCalledWith({ locale: "es" });
+  update.mockClear();
   act(() => root.render(<Reporter saved={undefined} />));
   await act(() => activateUiLocale("fr"));
   expect(update).not.toHaveBeenCalled();

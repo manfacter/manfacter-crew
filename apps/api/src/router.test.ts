@@ -5720,6 +5720,11 @@ describe("model disconnect", () => {
 });
 
 describe("bot intro run", () => {
+  it("includes the saved account language in the first greeting's context", () => {
+    expect(
+      botIntroPrompt({ userName: "Ada", spaceName: null, disabledBuiltinTools: [], locale: "es" }),
+    ).toContain("selected app language is es");
+  });
   const actor = {
     spaceId: "space-1",
     userId: "user-1",

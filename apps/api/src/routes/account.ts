@@ -41,6 +41,7 @@ import { createAccessGrant, listAccessGrants, revokeAccessGrant } from "../acces
 import { requireAdmin } from "../admins.js";
 import { aiConsentStatus, allowAiConsent } from "../ai-consent.js";
 import type { BillingService } from "../billing.js";
+import { localizeFirstBots } from "../localize-first-bots.js";
 import { firstModelConnectAnalytics } from "../model-connect-analytics.js";
 import type { RouterDeps } from "../router.js";
 import { withSerializableRetry } from "../serializable-retry.js";
@@ -217,6 +218,7 @@ export function accountRoutes(ctx: RouterContext) {
             });
           }
         }
+        if (input.locale !== undefined) await localizeFirstBots(deps, userId, input.locale);
         return meDto(deps, context.actor);
       }),
       adoptTimezone: authed.preferences.adoptTimezone.handler(

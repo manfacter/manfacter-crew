@@ -50,9 +50,12 @@ describe("PWA build", () => {
       scope: "/",
       start_url: "/",
       display: "standalone",
+      name: "Manfacter Crew",
+      short_name: "Crew",
       background_color: webDarkTokens.background,
       theme_color: webDarkTokens.background,
     });
-    expect(manifest.icons.filter((icon) => icon.purpose === "maskable")).toHaveLength(2);
+    expect(manifest.icons.filter((icon) => icon.purpose === "maskable")).toHaveLength(1);
+    expect(manifest.icons.every((icon) => icon.src === "/crew.svg")).toBe(true);
   });
 });

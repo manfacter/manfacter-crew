@@ -11,6 +11,7 @@ import { disabledBuiltinToolSet } from "@rakazo/contracts";
 import {
   assertTransition,
   botMessageAllowsSilence,
+  conversationLanguageInstruction,
   expandSkillReferencesInPrompt,
   formatSkillRunPrompt,
   formatSkillsCatalogInstruction,
@@ -1631,13 +1632,14 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
             );
         const replyContext = await loadReplyContext(deps.prisma, thread.id, run.sourceMessageId);
         let userTimeZone: string | null | undefined;
+        let userLocale: string | null | undefined;
         try {
-          userTimeZone = (
-            await deps.prisma.user.findUnique({
-              where: { id: run.userId },
-              select: { timezone: true },
-            })
-          )?.timezone;
+          const profile = await deps.prisma.user.findUnique({
+            where: { id: run.userId },
+            select: { timezone: true, locale: true },
+          });
+          userTimeZone = profile?.timezone;
+          userLocale = profile?.locale;
         } catch {
           // Timezone is optional context; a lookup failure must not prevent a run.
         }
@@ -1822,6 +1824,7 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
               contextStrategy: deps.contextStrategy,
               instructions: userTurnInstructions({
                 botInstructions: runIdentityInstruction(bot, run.trigger),
+                languageInstruction: conversationLanguageInstruction(userLocale),
                 groupContext: groupReplyOptional
                   ? [groupContext, GROUP_UNADDRESSED_REPLY_GUIDANCE].filter(Boolean).join("\n")
                   : groupContext,

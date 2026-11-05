@@ -148,21 +148,24 @@ export async function readHostActivity(
   assertion: unknown,
 ) {
   const claims = await consumeHostAssertion(prisma, config, assertion);
-  const run = await prisma.run.findFirst({
-    where: {
-      status: "running",
-      leaseExpiresAt: { gt: new Date() },
-      bot: {
-        archivedAt: null,
-        space: {
-          deletingAt: null,
-          memberships: { some: { userId: hostUserId(config, claims.sub) } },
-        },
-      },
+  const bot = {
+    archivedAt: null,
+    space: {
+      deletingAt: null,
+      memberships: { some: { userId: hostUserId(config, claims.sub) } },
     },
-    select: { id: true },
-  });
-  return { working: run !== null };
+  };
+  const [run, question] = await Promise.all([
+    prisma.run.findFirst({
+      where: { status: "running", leaseExpiresAt: { gt: new Date() }, bot },
+      select: { id: true },
+    }),
+    prisma.run.findFirst({
+      where: { status: "waiting_input", bot },
+      select: { id: true },
+    }),
+  ]);
+  return { working: run !== null, needsInput: question !== null };
 }
 
 export function hostSession(prisma: PrismaClient, config: HostSessionConfig) {

@@ -49,6 +49,7 @@ it("reports only live work in the signed user's spaces, without a new session or
   const token = assertion(user, "b");
   await expect(readHostActivity(prisma, config, token)).resolves.toEqual({
     working: false,
+    needsInput: false,
   });
   const filter = findFirst.mock.calls[0]![0];
   expect(filter).toMatchObject({
@@ -66,16 +67,28 @@ it("reports only live work in the signed user's spaces, without a new session or
     },
   });
   await expect(readHostActivity(prisma, config, token)).rejects.toThrow();
-  expect(findFirst).toHaveBeenCalledTimes(1);
-  findFirst.mockResolvedValue({ id: "synthetic-run" });
+  expect(findFirst).toHaveBeenCalledTimes(2);
+  expect(findFirst.mock.calls[1]![0]).toMatchObject({
+    where: { status: "waiting_input", bot: filter.where.bot },
+    select: { id: true },
+  });
+  findFirst.mockImplementation(async ({ where }) =>
+    where.status === "waiting_input" ? { id: "synthetic-question" } : null,
+  );
   await expect(
     readHostActivity(
       prisma,
       config,
       assertion("33333333-3333-4333-a333-333333333333", "c"),
     ),
-  ).resolves.toEqual({ working: true });
+  ).resolves.toEqual({ working: false, needsInput: true });
   expect(
-    findFirst.mock.calls[1]![0].where.bot.space.memberships.some.userId,
+    findFirst.mock.calls[2]![0].where.bot.space.memberships.some.userId,
   ).not.toBe(filter.where.bot.space.memberships.some.userId);
+  findFirst.mockImplementation(async ({ where }) =>
+    where.status === "running" ? { id: "synthetic-resumed-run" } : null,
+  );
+  await expect(readHostActivity(prisma, config, assertion(user, "d"))).resolves.toEqual({
+    working: true, needsInput: false,
+  });
 });

@@ -1,5 +1,10 @@
 import { FLEET_WRITE_TOOL_NAMES } from "@rakazo/contracts";
-import { runReadsThreadHistory, toolRequiresExplicitApproval } from "@rakazo/core";
+import {
+  CHIEF_INSTRUCTIONS,
+  isFirstBot,
+  runReadsThreadHistory,
+  toolRequiresExplicitApproval,
+} from "@rakazo/core";
 import { MODEL_CANNOT_SEE_MESSAGE } from "./model-vision.js";
 import { replyGuidanceForOfferedTools } from "./run-replies.js";
 import type { UserComputerState } from "./run-tools-user-computer.js";
@@ -242,7 +247,7 @@ const FOLLOW_UP_INSTRUCTION =
 function spawnBotClause(disabled?: ReadonlySet<string>): string | undefined {
   if (!builtinOffered(disabled, "spawn_bot")) return undefined;
   const demo = builtinOffered(disabled, "run_subagent") ? " Do not run_subagent to demo it." : "";
-  return `spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked to create a bot, call spawn_bot once and stop.${demo}`;
+  return `spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked only to create one bot, call spawn_bot once and stop. If they asked to assemble a team, create the needed roles and complete the requested setup and delegation.${demo}`;
 }
 
 /** The fleet rules, naming only the tools the run was offered; none without a write tool. */
@@ -315,6 +320,7 @@ function toolUsageLine(parts: {
 // Ordering matters: stable blocks first, volatile ones last, so the prefix stays cacheable.
 export function userTurnInstructions(parts: {
   botInstructions: string;
+  languageInstruction?: string;
   groupContext: string | undefined;
   messagingContext: string | undefined;
   redactedMemoryContext: string | undefined;
@@ -341,6 +347,7 @@ export function userTurnInstructions(parts: {
 }): (string | undefined)[] {
   return [
     parts.botInstructions,
+    parts.languageInstruction,
     parts.historyRetrievalEnabled &&
     builtinOffered(parts.disabledBuiltinTools, "search_history") &&
     builtinOffered(parts.disabledBuiltinTools, "read_history")
@@ -452,11 +459,12 @@ export function runIdentityInstruction(
     name: string;
     description?: string | null;
     instructions?: string | null;
+    spawnKey?: string | null;
   },
   trigger: string,
 ): string {
   const description = bot.description?.trim() ?? "";
-  const rawInstructions = bot.instructions ?? "";
+  const rawInstructions = bot.instructions?.trim() || (isFirstBot(bot) ? CHIEF_INSTRUCTIONS : "");
   const instructions = rawInstructions.trim();
   if (trigger !== "created") {
     const identity = description ? `${bot.name}\n${description}` : bot.name;

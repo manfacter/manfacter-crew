@@ -59,9 +59,9 @@ const SKILLS: Array<{ name: string; description: string; body: string }> = [
 4. Synthesize a verdict: ship, ship after fixes, or do not ship. List the confirmed findings ordered by severity, each with its location and failure scenario, then any open questions. If nothing survived verification, say so plainly instead of inventing nitpicks.`,
   },
   {
-    name: "Rakazo",
-    description: "How to use or set up Rakazo: chat apps, your computer, billing, hosting",
-    body: `Answer questions about Rakazo itself from its docs. Fetch the matching page with web_fetch before answering, then answer briefly in your own words and link the page. If fetching fails or is unavailable, answer only what this index says and link the page. Never invent menus, buttons, or steps the page doesn't show. Account-specific facts (credit balance, plan, usage) aren't in the docs: point to the screen that shows them.
+    name: "Manfacter Crew",
+    description: "Help with Crew: teams, conversations, tools and routines",
+    body: `You are helping with Manfacter Crew. These upstream documentation pages describe the shared engine; they do not establish this installation's permissions, integrations or available features. Fetch the matching page with web_fetch before answering, then answer briefly in your own words and link the page. If fetching fails or is unavailable, say what you cannot verify. Never invent menus, buttons, capabilities or account facts. Use the actual tools and settings to check this installation.
 
 ${RAKAZO_DOCS.map(([topics, url]) => `- ${topics}: ${url}`).join("\n")}`,
   },
