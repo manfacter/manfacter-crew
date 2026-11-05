@@ -26,13 +26,20 @@ function stubTransitions() {
     startViewTransition(update: () => Promise<void>) {
       let done = () => {};
       let skip = () => {};
+      let rejectReady = (_error: Error) => {};
+      const ready = new Promise<void>((_resolve, reject) => {
+        rejectReady = reject;
+      });
       const finished = new Promise<void>((resolve, reject) => {
         done = resolve;
-        skip = () => reject(new Error("Transition skipped"));
+        skip = () => {
+          rejectReady(new Error("Transition skipped"));
+          reject(new Error("Transition skipped"));
+        };
       });
       const skipTransition = vi.fn(skip);
       transitions.push({ update, done, skip, skipTransition });
-      return { finished, skipTransition };
+      return { finished, ready, skipTransition };
     },
   });
   return { transitions, classes };

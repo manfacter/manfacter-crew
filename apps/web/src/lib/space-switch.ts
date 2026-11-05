@@ -72,7 +72,8 @@ export function remountShellForSpace(commit: () => boolean): void {
     activeTransitions -= 1;
     if (activeTransitions === 0) root.classList.remove(SWITCHING_CLASS);
   };
-  // Skipped or interrupted transitions may reject; release without an unhandled rejection.
+  // Skips reject ready separately from finished; neither rejection should escape.
+  void transition.ready.catch(() => {});
   void transition.finished.then(release, release);
 }
 
