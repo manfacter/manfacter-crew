@@ -11,6 +11,10 @@ it("separates the migration credential from all permanent workloads", () => {
     expect(c.Secrets.some((s: any) => s.Name === "DATABASE_OWNER_PASSWORD")).toBe(false);
     expect(c.LogConfiguration.Options.mode).toBe("blocking");
     expect(c.HealthCheck).toBeDefined();
+    if (c.Name !== "web") {
+      expect(c.Environment.find((e: any) => e.Name === "BROWSER_PROVIDER").Value).toBe("computer");
+      expect(c.Environment.find((e: any) => e.Name === "SANDBOX_PROVIDER").Value).toBe("none");
+    }
   }
   expect(t.Resources.Migration.Properties.ContainerDefinitions[0].Secrets.some((s: any) => s.Name === "DATABASE_OWNER_PASSWORD")).toBe(true);
   expect(t.Resources.Service.Condition).toBe("Launch");

@@ -2,7 +2,14 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Crew hosted API, background worker and embedded web application",
   "Parameters": {
-    "StartApplication": { "Type": "String", "Default": "false", "AllowedValues": ["false", "true"] },
+    "StartApplication": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
+    },
     "FoundationStack": {
       "Type": "String",
       "AllowedPattern": "[A-Za-z][A-Za-z0-9-]{0,127}"
@@ -39,7 +46,16 @@
       "MaxValue": 2
     }
   },
-  "Conditions": { "Launch": { "Fn::Equals": [{ "Ref": "StartApplication" }, "true"] } },
+  "Conditions": {
+    "Launch": {
+      "Fn::Equals": [
+        {
+          "Ref": "StartApplication"
+        },
+        "true"
+      ]
+    }
+  },
   "Resources": {
     "ExecutionRole": {
       "Type": "AWS::IAM::Role",
@@ -511,7 +527,7 @@
               },
               {
                 "Name": "BROWSER_PROVIDER",
-                "Value": "none"
+                "Value": "computer"
               },
               {
                 "Name": "API_URL",
@@ -693,7 +709,7 @@
               },
               {
                 "Name": "BROWSER_PROVIDER",
-                "Value": "none"
+                "Value": "computer"
               },
               {
                 "Name": "API_URL",
