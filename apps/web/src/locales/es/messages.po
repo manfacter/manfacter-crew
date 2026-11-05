@@ -7326,3 +7326,18 @@ msgstr "Leyendo una fuente"
 
 msgid "crew.activity.note"
 msgstr "Anotando información de trabajo"
+
+msgid "crew.activity.profile"
+msgstr "Actualizando el perfil"
+
+msgid "crew.activity.role"
+msgstr "Actualizando las funciones de un compañero"
+
+msgid "crew.activity.group"
+msgstr "Creando una conversación de equipo"
+
+msgid "crew.activity.question"
+msgstr "Planteando una pregunta"
+
+msgid "crew.activity.action"
+msgstr "Ejecutando una acción"
