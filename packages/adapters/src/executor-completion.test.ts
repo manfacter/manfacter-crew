@@ -549,12 +549,22 @@ describe("runReplyGuidance", () => {
     expect(prompt.endsWith("Never send mail without asking.")).toBe(true);
   });
 
-  it("gives legacy coordinators their default role without replacing custom instructions", () => {
+  it("retains the coordinator role alongside custom instructions on every trigger", () => {
     const bot = { name: "Jefe de equipo", spawnKey: "onboarding:first", instructions: " " };
     expect(runIdentityInstruction(bot, "user")).toContain(CHIEF_INSTRUCTIONS);
-    expect(
-      runIdentityInstruction({ ...bot, instructions: "My own coordinator role." }, "user"),
-    ).not.toContain(CHIEF_INSTRUCTIONS);
+    for (const trigger of ["created", "user", "bot", "routine"]) {
+      const prompt = runIdentityInstruction(
+        { ...bot, name: "My coordinator", instructions: "Never send mail without asking." },
+        trigger,
+      );
+      expect(prompt).toContain(CHIEF_INSTRUCTIONS);
+      expect(prompt).toContain("Never send mail without asking.");
+    }
+    const defaultPrompt = runIdentityInstruction(
+      { ...bot, instructions: CHIEF_INSTRUCTIONS },
+      "user",
+    );
+    expect(defaultPrompt.split(CHIEF_INSTRUCTIONS)).toHaveLength(2);
     expect(runIdentityInstruction({ name: "Analyst" }, "user")).toBe("Analyst");
   });
 

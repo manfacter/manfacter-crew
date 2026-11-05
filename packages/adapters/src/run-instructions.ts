@@ -464,8 +464,12 @@ export function runIdentityInstruction(
   trigger: string,
 ): string {
   const description = bot.description?.trim() ?? "";
-  const rawInstructions = bot.instructions?.trim() || (isFirstBot(bot) ? CHIEF_INSTRUCTIONS : "");
-  const instructions = rawInstructions.trim();
+  const customInstructions = bot.instructions?.trim() ?? "";
+  const instructions = isFirstBot(bot)
+    ? [CHIEF_INSTRUCTIONS, customInstructions === CHIEF_INSTRUCTIONS ? "" : customInstructions]
+        .filter(Boolean)
+        .join("\n\n")
+    : customInstructions;
   if (trigger !== "created") {
     const identity = description ? `${bot.name}\n${description}` : bot.name;
     // Older bots saved one text as both fields; do not repeat it.
