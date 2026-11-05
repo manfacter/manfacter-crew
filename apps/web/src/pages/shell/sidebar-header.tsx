@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { Bot } from "@rakazo/contracts";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@rakazo/ui-web";
 import { Bell, PanelLeftClose, PanelLeftOpen, Plus, Search } from "lucide-react";
+import type { ReactNode } from "react";
 import { IconTooltip } from "../../components/IconTooltip";
 import { desktopBridge } from "../../lib/desktop";
 import type { Panel } from "../../lib/right-panel-state";
@@ -23,6 +24,7 @@ export function SidebarHeader({
   navigate,
   setNewSpaceOpen,
   setCreateBotOpen,
+  accountMenu,
 }: {
   mini?: boolean;
   createMenuOpen: boolean;
@@ -38,6 +40,7 @@ export function SidebarHeader({
   navigate: (path: string) => void;
   setNewSpaceOpen: (open: boolean) => void;
   setCreateBotOpen: (open: boolean) => void;
+  accountMenu: ReactNode;
 }) {
   const { t } = useLingui();
   const hasWindowChrome = Boolean(desktopBridge());
@@ -48,6 +51,7 @@ export function SidebarHeader({
     >
       {!mini || hasWindowChrome ? <WindowChrome /> : null}
       <div className={`relative flex items-center ${mini ? "flex-col gap-0.5" : "gap-1"}`}>
+        {accountMenu}
         {onSearch ? (
           <IconTooltip label={t`Search`}>
             <Button

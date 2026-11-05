@@ -6,7 +6,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { DesktopUpdatesProvider } from "./DesktopUpdates";
-import { SidebarFooter, sidebarMarkCount } from "./SidebarFooter";
+import { SidebarAccountMenu } from "./SidebarAccountMenu";
 
 vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({
@@ -30,7 +30,6 @@ afterEach(async () => {
 });
 async function render(
   name = "Demo User",
-  image?: string,
   onIntegrations = vi.fn(),
   onBoard?: () => void,
   logos?: Array<{ name: string; logo?: string }>,
@@ -39,16 +38,9 @@ async function render(
   await act(async () =>
     root.render(
       <DesktopUpdatesProvider>
-        <SidebarFooter
+        <SidebarAccountMenu
           logos={logos}
           name={name}
-          initials={name
-            .split(" ")
-            .map((part) => part[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase()}
-          image={image}
           email={email}
           open
           onOpenChange={() => {}}
@@ -120,26 +112,27 @@ it("installs the ready update only through the footer button", async () => {
     [...document.querySelectorAll("button")].some((button) => button.textContent === "Install"),
   ).toBe(false);
 });
-it("shows the account image and falls back to the initial after a load error", async () => {
-  await render("Ada Lovelace", "https://example.test/avatar.png");
+it("uses a settings icon for the account menu instead of an avatar", async () => {
+  await render("Ada Lovelace");
   const trigger = host.querySelector('[data-testid="user-menu-trigger"]')!;
-  const image = trigger.querySelector("img")!;
-  expect(image.src).toBe("https://example.test/avatar.png");
-  await act(async () => image.dispatchEvent(new Event("error")));
   expect(trigger.querySelector("img")).toBeNull();
-  expect(trigger.textContent).toBe("AL");
+  expect(trigger.querySelector(".lucide-settings")).not.toBeNull();
+  expect(trigger.textContent).toBe("");
 });
 
 it("opens integrations and keeps the existing account actions and links", async () => {
   const onIntegrations = vi.fn();
-  await render("Demo User", undefined, onIntegrations, vi.fn());
-  const connect = [...host.querySelectorAll("button")].find((button) =>
+  await render("Demo User", onIntegrations, vi.fn());
+  const menu = document.querySelector('[data-slot="popover-content"]')!;
+  const connect = [...menu.querySelectorAll("button")].find((button) =>
     button.textContent?.includes("Connect apps"),
   )!;
   await act(async () => connect.click());
   expect(onIntegrations).toHaveBeenCalledOnce();
-  const menu = document.querySelector('[data-slot="popover-content"]')!;
+  expect(connect.querySelector(".lucide-plug")).not.toBeNull();
+  expect(host.textContent).not.toContain("Connect apps");
   expect([...menu.querySelectorAll("button, a")].map((row) => row.textContent)).toEqual([
+    "Connect apps",
     "Settings",
     "Skills",
     "Artifacts",
@@ -164,19 +157,21 @@ it("links to the maintained fork documentation without advertising an upstream a
   expect(docs.href).toBe(
     "https://github.com/manfacter/manfacter-crew/blob/codex/admin-embed/docs/admin-embed.md",
   );
-  expect(document.querySelector('a[href*="apps.apple.com"], a[href*="play.google.com"]')).toBeNull();
+  expect(
+    document.querySelector('a[href*="apps.apple.com"], a[href*="play.google.com"]'),
+  ).toBeNull();
 });
 it("falls back when app artwork fails and accepts replacement artwork", async () => {
-  await render("Demo User", undefined, undefined, undefined, [
+  await render("Demo User", undefined, undefined, [
     { name: "Slack", logo: "https://example.test/slack.svg" },
   ]);
-  const pill = [...host.querySelectorAll("button")].find((button) =>
+  const pill = [...document.querySelectorAll("button")].find((button) =>
     button.textContent?.includes("Connect apps"),
   )!;
   await act(async () => pill.querySelector("img")!.dispatchEvent(new Event("error")));
   expect(pill.querySelector("img")).toBeNull();
   expect(pill.textContent).toContain("S");
-  await render("Demo User", undefined, undefined, undefined, [
+  await render("Demo User", undefined, undefined, [
     { name: "Slack", logo: "https://example.test/new-slack.svg" },
   ]);
   expect(pill.querySelector("img")?.src).toBe("https://example.test/new-slack.svg");
@@ -215,28 +210,16 @@ it.each(["throw", "state"] as const)(
   },
 );
 
-it.each([
-  [-20, 0],
-  [0, 0],
-  [25, 0],
-  [26, 1],
-  [47, 1],
-  [48, 2],
-  [69, 2],
-  [70, 3],
-  [200, 3],
-])("fits marks into %ipx without consuming label or padding space", (width, count) => {
-  expect(sidebarMarkCount(width)).toBe(count);
-});
-
 it("keeps at most three marks with the same tile and a missing-logo fallback", async () => {
-  await render("Demo User", undefined, undefined, undefined, [
+  await render("Demo User", undefined, undefined, [
     { name: "Gmail", logo: "https://example.test/gmail.svg" },
     { name: "Notion" },
     { name: "GitHub", logo: "https://example.test/github.svg" },
     { name: "Slack" },
   ]);
-  const tiles = [...host.querySelectorAll('span[aria-hidden="true"] > span')];
+  const tiles = [
+    ...document.querySelectorAll('[data-slot="popover-content"] span[aria-hidden="true"] > span'),
+  ];
   expect(tiles).toHaveLength(3);
   expect(new Set(tiles.map((tile) => tile.className)).size).toBe(1);
   expect(tiles[1]!.textContent).toBe("N");
@@ -264,9 +247,8 @@ async function renderOrganizations(
   await act(async () =>
     root.render(
       <DesktopUpdatesProvider>
-        <SidebarFooter
+        <SidebarAccountMenu
           name="Demo User"
-          initials="DU"
           email="account@rakazo.test"
           open
           onOpenChange={() => {}}
@@ -289,13 +271,17 @@ async function renderOrganizations(
 
 it("shows no organization rows with one organization", async () => {
   const rows = await renderOrganizations([personal]);
-  expect(rows[0]!.textContent).toBe("Settings");
+  expect(rows[0]!.textContent).toBe("Connect apps");
 });
 
 it("lists two organizations with the active one checked", async () => {
   const onSwitch = vi.fn();
   const rows = await renderOrganizations([personal, work], onSwitch);
-  expect(rows.map((row) => row.textContent).slice(0, 3)).toEqual(["Personal", "Work", "Settings"]);
+  expect(rows.map((row) => row.textContent).slice(0, 3)).toEqual([
+    "Personal",
+    "Work",
+    "Connect apps",
+  ]);
   expect(rows[0]!.getAttribute("aria-current")).toBe("true");
   expect(rows[0]!.querySelector("svg")).not.toBeNull();
   expect(rows[1]!.hasAttribute("aria-current")).toBe(false);

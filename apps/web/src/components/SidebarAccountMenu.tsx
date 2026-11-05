@@ -20,9 +20,8 @@ import {
   Settings,
   SquareKanban,
   UserPlus,
-  UserRound,
 } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { Organization } from "../lib/organizations";
 import { useSidebarUpdate } from "./DesktopUpdates";
 import { IconTooltip } from "./IconTooltip";
@@ -30,8 +29,6 @@ import { IconTooltip } from "./IconTooltip";
 type Props = {
   mini?: boolean;
   name: string;
-  initials: string | null;
-  image?: string | null;
   logos?: Array<{ name: string; logo?: string | null }>;
   email?: string;
   open: boolean;
@@ -50,18 +47,12 @@ type Props = {
   organizations?: Organization[];
   activeOrganizationId?: string | null;
   onSwitchOrganization?: (organization: Organization) => void;
+  children?: ReactNode;
 };
 
-// Marks are 24px wide, overlap by 2px, and need 2px for the outer ring.
-export function sidebarMarkCount(availableWidth: number) {
-  return Math.max(0, Math.min(3, Math.floor((availableWidth - 26) / 22) + 1));
-}
-
-export function SidebarFooter({
+export function SidebarAccountMenu({
   mini = false,
   name,
-  initials,
-  image,
   logos = [],
   email,
   open,
@@ -80,62 +71,30 @@ export function SidebarFooter({
   organizations = [],
   activeOrganizationId,
   onSwitchOrganization,
+  children,
 }: Props) {
   const { t } = useLingui();
   const update = useSidebarUpdate();
-  const [failedImage, setFailedImage] = useState<string | null>(null);
-  const pillRef = useRef<HTMLButtonElement>(null);
-  const labelRef = useRef<HTMLSpanElement>(null);
-  const [markCount, setMarkCount] = useState(3);
-  useLayoutEffect(() => {
-    const pill = pillRef.current;
-    const label = labelRef.current;
-    if (!pill || !label || typeof ResizeObserver === "undefined") return;
-    const measure = () => {
-      const style = getComputedStyle(pill);
-      const available =
-        pill.clientWidth -
-        Number.parseFloat(style.paddingLeft) -
-        Number.parseFloat(style.paddingRight) -
-        label.scrollWidth -
-        Number.parseFloat(style.columnGap);
-      setMarkCount(sidebarMarkCount(available));
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(pill);
-    observer.observe(label);
-    measure();
-    return () => observer.disconnect();
-  }, [mini]);
   return (
     <div
-      data-testid="sidebar-footer"
-      className={`flex shrink-0 items-center gap-2 bg-transparent ${mini ? "flex-col px-1 py-2" : "px-2.5 py-3"}`}
+      data-testid="sidebar-account-menu"
+      className={`app-no-drag flex shrink-0 items-center gap-1 ${mini ? "flex-col" : ""}`}
     >
       <Popover open={open} onOpenChange={onOpenChange}>
-        <PopoverTrigger
-          data-testid="user-menu-trigger"
-          aria-label={t`Account menu for ${name}`}
-          className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-sidebar-accent text-sm font-medium text-foreground outline-none hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {image && failedImage !== image ? (
-            <img
-              src={image}
-              alt=""
-              className="size-full object-cover"
-              onError={() => setFailedImage(image)}
-            />
-          ) : initials ? (
-            initials
-          ) : (
-            <UserRound size={18} aria-hidden="true" />
-          )}
-        </PopoverTrigger>
+        <IconTooltip label={t`Settings`}>
+          <PopoverTrigger
+            render={<Button variant="ghost" size="icon-sm" className="text-muted-foreground" />}
+            data-testid="user-menu-trigger"
+            aria-label={t`Account menu for ${name}`}
+          >
+            <Settings size={15} strokeWidth={1.8} aria-hidden="true" />
+          </PopoverTrigger>
+        </IconTooltip>
         {open ? (
           <PopoverContent
-            side="top"
+            side="bottom"
             sideOffset={8}
-            align="start"
+            align="end"
             className="max-h-(--available-height) w-[295px] max-w-[calc(100vw-69px)] gap-0 overflow-y-auto p-1 *:shrink-0 data-closed:animate-none"
           >
             <div
@@ -147,6 +106,7 @@ export function SidebarFooter({
                 <p className="truncate text-xs text-muted-foreground">{email}</p>
               ) : null}
             </div>
+            {children}
             {organizations.length > 1 ? (
               <>
                 {organizations.map((organization) => {
@@ -167,16 +127,17 @@ export function SidebarFooter({
                 <div className="my-1 border-t border-border" />
               </>
             ) : null}
-            {mini ? (
-              <Button
-                variant="ghost"
-                className="h-9 w-full justify-start gap-2.5 font-normal"
-                onClick={onIntegrations}
-              >
-                <Plug className="text-muted-foreground" strokeWidth={1.75} />
+            <Button
+              variant="ghost"
+              className="h-9 w-full justify-start gap-2.5 font-normal"
+              onClick={onIntegrations}
+            >
+              <Plug className="text-muted-foreground" strokeWidth={1.75} />
+              <span className="min-w-0 flex-1 truncate text-left">
                 <Trans>Connect apps</Trans>
-              </Button>
-            ) : null}
+              </span>
+              <AppMarkStack marks={logos.slice(0, 3)} ringClassName="ring-popover" />
+            </Button>
             <Button
               variant="ghost"
               className="h-9 w-full justify-start gap-2.5 font-normal"
@@ -261,19 +222,6 @@ export function SidebarFooter({
           </PopoverContent>
         ) : null}
       </Popover>
-      {!mini ? (
-        <Button
-          variant="outline"
-          ref={pillRef}
-          onClick={onIntegrations}
-          className="h-9 min-w-0 flex-1 justify-between bg-sidebar-accent hover:border-foreground/30 hover:bg-sidebar-accent dark:hover:bg-sidebar-accent"
-        >
-          <span ref={labelRef} className="min-w-0 truncate">
-            <Trans>Connect apps</Trans>
-          </span>
-          <AppMarkStack marks={logos.slice(0, markCount)} ringClassName="ring-sidebar-accent" />
-        </Button>
-      ) : null}
       {update.available ? (
         <IconTooltip label={t`Install update`}>
           <Button

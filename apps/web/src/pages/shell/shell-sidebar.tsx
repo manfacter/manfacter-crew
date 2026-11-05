@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { InviteDialog } from "../../components/InviteDialog";
 import { PasskeyOffer } from "../../components/PasskeyOffer";
-import { SidebarFooter } from "../../components/SidebarFooter";
+import { SidebarAccountMenu } from "../../components/SidebarAccountMenu";
 import { useBilling } from "../../components/SubscriptionGate";
 import { formatBillingDate } from "../../lib/billing";
 import type { BotsSidebarDensity } from "../../lib/bots-sidebar-density-pref";
@@ -176,6 +176,21 @@ export function ShellSidebar({
           navigate={navigate}
           setNewSpaceOpen={setNewSpaceOpen}
           setCreateBotOpen={setCreateBotOpen}
+          accountMenu={
+            <ShellSidebarAccountMenu
+              mini={mini}
+              logos={footerLogos}
+              user={user}
+              ticketBoardEnabled={ticketBoardEnabled}
+              navLinks={navLinks}
+              closeMobileSidebar={() => setMobileOpen(false)}
+              navigate={navigate}
+              openSettings={openSettings}
+              openIntegrations={openIntegrations}
+              openSkills={openSkills}
+              openSpaceChat={openSpaceChat}
+            />
+          }
         />
         {mini ||
         !(
@@ -279,25 +294,12 @@ export function ShellSidebar({
         <div className={mini ? "hidden" : "contents"}>
           <PasskeyOffer />
         </div>
-        <ShellSidebarFooter
-          mini={mini}
-          logos={footerLogos}
-          user={user}
-          ticketBoardEnabled={ticketBoardEnabled}
-          navLinks={navLinks}
-          closeMobileSidebar={() => setMobileOpen(false)}
-          navigate={navigate}
-          openSettings={openSettings}
-          openIntegrations={openIntegrations}
-          openSkills={openSkills}
-          openSpaceChat={openSpaceChat}
-        />
       </Sidebar>
     </>
   );
 }
 
-function ShellSidebarFooter({
+function ShellSidebarAccountMenu({
   mini,
   logos,
   user,
@@ -341,28 +343,14 @@ function ShellSidebarFooter({
     setMenuOpen(true);
     setLogOutError(message);
   });
-  const { label: userName, initial: initials } = accountDisplay(user ?? {}, t`You`);
+  const { label: userName } = accountDisplay(user ?? {}, t`You`);
   const day = freeUntil ? formatBillingDate(freeUntil, i18n.locale || "en") : "";
   return (
     <>
-      {freeUntil && !mini ? (
-        <div className="mx-2.5 flex items-center justify-between gap-2 ps-2.5 text-sm text-muted-foreground">
-          <span className="min-w-0 truncate">
-            <Trans>Free plan ends {day}</Trans>
-          </span>
-          {billing?.canManage ? (
-            <Button variant="outline" size="sm" onClick={showPlans}>
-              <Trans>Upgrade</Trans>
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      <SidebarFooter
+      <SidebarAccountMenu
         mini={mini}
         logos={logos}
         name={userName}
-        initials={initials}
-        image={user?.image}
         email={user?.email}
         open={menuOpen}
         onOpenChange={(open) => {
@@ -422,7 +410,20 @@ function ShellSidebarFooter({
           if (organization.id !== activeOrganizationId)
             void switchOrganization(userId, organization, openSpaceChat);
         }}
-      />
+      >
+        {freeUntil ? (
+          <div className="mx-2.5 flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span className="min-w-0 truncate">
+              <Trans>Free plan ends {day}</Trans>
+            </span>
+            {billing?.canManage ? (
+              <Button variant="outline" size="sm" onClick={showPlans}>
+                <Trans>Upgrade</Trans>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </SidebarAccountMenu>
       {referral ? (
         <InviteDialog referral={referral} open={inviteOpen} onOpenChange={setInviteOpen} />
       ) : null}
