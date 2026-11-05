@@ -58,6 +58,7 @@
       "Type": "AWS::EFS::AccessPoint",
       "Properties": { "FileSystemId": { "Ref": "Files" }, "PosixUser": { "Uid": "1000", "Gid": "1000" }, "RootDirectory": { "Path": "/crew", "CreationInfo": { "OwnerUid": "1000", "OwnerGid": "1000", "Permissions": "750" } } }
     },
+    "WebAssetsAccessPoint": {"Type":"AWS::EFS::AccessPoint","Properties":{"FileSystemId":{"Ref":"Files"},"PosixUser":{"Uid":"1000","Gid":"1000"},"RootDirectory":{"Path":"/crew-web-assets","CreationInfo":{"OwnerUid":"1000","OwnerGid":"1000","Permissions":"750"}}}},
     "FilesMountA": { "Type": "AWS::EFS::MountTarget", "Properties": { "FileSystemId": { "Ref": "Files" }, "SubnetId": { "Fn::Select": [0, { "Ref": "Subnets" }] }, "SecurityGroups": [{ "Ref": "FilesSecurityGroup" }] } },
     "FilesMountB": { "Type": "AWS::EFS::MountTarget", "Properties": { "FileSystemId": { "Ref": "Files" }, "SubnetId": { "Fn::Select": [1, { "Ref": "Subnets" }] }, "SecurityGroups": [{ "Ref": "FilesSecurityGroup" }] } },
     "FilesMountC": { "Type": "AWS::EFS::MountTarget", "Properties": { "FileSystemId": { "Ref": "Files" }, "SubnetId": { "Fn::Select": [2, { "Ref": "Subnets" }] }, "SecurityGroups": [{ "Ref": "FilesSecurityGroup" }] } },
@@ -68,18 +69,154 @@
     "ScreenProxySecret": { "Type": "AWS::SecretsManager::Secret", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": { "GenerateSecretString": { "PasswordLength": 80, "ExcludePunctuation": true } } }
   },
   "Outputs": {
-    "Cluster": { "Value": { "Ref": "Cluster" } },
-    "Repository": { "Value": { "Fn::GetAtt": ["Repository", "RepositoryUri"] } },
-    "Logs": { "Value": { "Ref": "Logs" } },
-    "RuntimeSecurityGroup": { "Value": { "Ref": "RuntimeSecurityGroup" } },
-    "DatabaseHost": { "Value": { "Fn::GetAtt": ["Database", "Endpoint.Address"] } },
-    "DatabaseOwnerSecret": { "Value": { "Fn::GetAtt": ["Database", "MasterUserSecret.SecretArn"] } },
-    "RuntimeDatabasePassword": { "Value": { "Ref": "RuntimeDatabasePassword" } },
-    "Files": { "Value": { "Ref": "Files" } },
-    "FilesAccessPoint": { "Value": { "Ref": "FilesAccessPoint" } },
-    "SessionSecret": { "Value": { "Ref": "SessionSecret" } },
-    "HostSessionSecret": { "Value": { "Ref": "HostSessionSecret" } },
-    "ContentEncryptionKey": { "Value": { "Ref": "ContentEncryptionKey" } },
-    "ScreenProxySecret": { "Value": { "Ref": "ScreenProxySecret" } }
+    "Cluster": {
+      "Value": {
+        "Ref": "Cluster"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:Cluster"
+        }
+      }
+    },
+    "Repository": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Repository",
+          "RepositoryUri"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:Repository"
+        }
+      }
+    },
+    "Logs": {
+      "Value": {
+        "Ref": "Logs"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:Logs"
+        }
+      }
+    },
+    "RuntimeSecurityGroup": {
+      "Value": {
+        "Ref": "RuntimeSecurityGroup"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:RuntimeSecurityGroup"
+        }
+      }
+    },
+    "DatabaseHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Database",
+          "Endpoint.Address"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:DatabaseHost"
+        }
+      }
+    },
+    "DatabaseOwnerSecret": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Database",
+          "MasterUserSecret.SecretArn"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:DatabaseOwnerSecret"
+        }
+      }
+    },
+    "RuntimeDatabasePassword": {
+      "Value": {
+        "Ref": "RuntimeDatabasePassword"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:RuntimeDatabasePassword"
+        }
+      }
+    },
+    "Files": {
+      "Value": {
+        "Ref": "Files"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:Files"
+        }
+      }
+    },
+    "FilesAccessPoint": {
+      "Value": {
+        "Ref": "FilesAccessPoint"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:FilesAccessPoint"
+        }
+      }
+    },
+    "SessionSecret": {
+      "Value": {
+        "Ref": "SessionSecret"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:SessionSecret"
+        }
+      }
+    },
+    "HostSessionSecret": {
+      "Value": {
+        "Ref": "HostSessionSecret"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:HostSessionSecret"
+        }
+      }
+    },
+    "ContentEncryptionKey": {
+      "Value": {
+        "Ref": "ContentEncryptionKey"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:ContentEncryptionKey"
+        }
+      }
+    },
+    "ScreenProxySecret": {
+      "Value": {
+        "Ref": "ScreenProxySecret"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:ScreenProxySecret"
+        }
+      }
+    },
+    "WebAssetsAccessPoint": {
+      "Value": {
+        "Ref": "WebAssetsAccessPoint"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}:WebAssetsAccessPoint"
+        }
+      }
+    }
   }
 }
