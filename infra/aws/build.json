@@ -1,0 +1,171 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Pinned Crew builds without access to runtime data or secrets",
+  "Parameters": {
+    "FoundationStack": {
+      "Type": "String"
+    },
+    "RepositoryUri": {
+      "Type": "String"
+    },
+    "RepositoryName": {
+      "Type": "String"
+    },
+    "SourceSha": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "Resources": {
+    "BuildRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "codebuild.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ScopedImageBuild",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:PutImage",
+                    "ecr:DescribeImages"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${RepositoryName}"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":logs:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":log-group:",
+                        {
+                          "Fn::ImportValue": {
+                            "Fn::Sub": "${FoundationStack}:Logs"
+                          }
+                        },
+                        ":*"
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Build": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "ServiceRole": {
+          "Fn::GetAtt": [
+            "BuildRole",
+            "Arn"
+          ]
+        },
+        "Artifacts": {
+          "Type": "NO_ARTIFACTS"
+        },
+        "Source": {
+          "Type": "NO_SOURCE",
+          "BuildSpec": "{\"version\":\"0.2\",\"phases\":{\"pre_build\":{\"commands\":[\"set -eu\",\"printf '%s' \\\"$SOURCE_SHA\\\" | grep -Eq '^[0-9a-f]{40}$'\",\"git init source && cd source\",\"git remote add origin https://github.com/manfacter/manfacter-crew.git\",\"git fetch --depth=1 origin \\\"$SOURCE_SHA\\\"\",\"git checkout --detach FETCH_HEAD\",\"test \\\"$(git rev-parse HEAD)\\\" = \\\"$SOURCE_SHA\\\"\",\"aws ecr get-login-password --region \\\"$AWS_DEFAULT_REGION\\\" | docker login --username AWS --password-stdin \\\"${REPOSITORY_URI%%/*}\\\"\"]},\"build\":{\"commands\":[\"docker build -f infra/compose/Dockerfile --build-arg GIT_SHA=\\\"$SOURCE_SHA\\\" -t crew-base:\\\"$SOURCE_SHA\\\" .\",\"docker build -f infra/aws/Dockerfile --build-arg CREW_BASE_IMAGE=crew-base:\\\"$SOURCE_SHA\\\" -t \\\"$REPOSITORY_URI:$SOURCE_SHA\\\" .\",\"docker run --rm --network none --entrypoint node \\\"$REPOSITORY_URI:$SOURCE_SHA\\\" -e \\\"const f=require('fs');for(const p of ['/app/.env','/app/.env.local','/app/.git','/app/.tmp'])if(f.existsSync(p))throw Error('Private build content');if(process.getuid()===0)throw Error('Root runtime');\\\"\",\"docker push \\\"$REPOSITORY_URI:$SOURCE_SHA\\\"\",\"aws ecr describe-images --repository-name \\\"$REPOSITORY_NAME\\\" --image-ids imageTag=\\\"$SOURCE_SHA\\\" --query 'imageDetails[0].imageDigest' --output text\"]}}}"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": true,
+          "EnvironmentVariables": [
+            {
+              "Name": "SOURCE_SHA",
+              "Value": {
+                "Ref": "SourceSha"
+              }
+            },
+            {
+              "Name": "REPOSITORY_URI",
+              "Value": {
+                "Ref": "RepositoryUri"
+              }
+            },
+            {
+              "Name": "REPOSITORY_NAME",
+              "Value": {
+                "Ref": "RepositoryName"
+              }
+            },
+            {
+              "Name": "DOCKER_BUILDKIT",
+              "Value": "1"
+            }
+          ]
+        },
+        "TimeoutInMinutes": 30,
+        "QueuedTimeoutInMinutes": 10,
+        "ConcurrentBuildLimit": 1,
+        "LogsConfig": {
+          "CloudWatchLogs": {
+            "Status": "ENABLED",
+            "GroupName": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${FoundationStack}:Logs"
+              }
+            },
+            "StreamName": "build"
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "Project": {
+      "Value": {
+        "Ref": "Build"
+      }
+    }
+  }
+}
