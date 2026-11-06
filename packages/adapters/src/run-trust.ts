@@ -1,6 +1,7 @@
 import type { MessageBlock } from "@rakazo/contracts";
 import type { ActionApprovalRule } from "@rakazo/core";
 import {
+  botMessageMaxHops,
   connectorKindFromToolName,
   inboundRoutinePrompts,
   SITE_SENDING_TOOLS,
@@ -15,6 +16,51 @@ import { effectiveModelRole } from "./model-roles.js";
 import { routineTaskInstructions } from "./routine-watch.js";
 import { CATALOG_APPROVAL_TOOL, PASSED_EFFECT_STATUSES } from "./run-effects.js";
 import { BUILTIN_AGENT_TOOL_NAMES } from "./run-tool-selection.js";
+
+/** Follow only backend-recorded, same-owner delegations, never the peer's task text. */
+export async function delegatedOwnerWords(
+  prisma: ExecutorDeps["prisma"],
+  scope: { userId: string; spaceId: string },
+  initialRunId: string,
+): Promise<string> {
+  let id: string | null = initialRunId;
+  const seen = new Set<string>();
+  for (let hop = 0; id && hop <= botMessageMaxHops(); hop++) {
+    if (seen.has(id)) return "";
+    seen.add(id);
+    const origin = await prisma.run.findFirst({
+      where: { id, userId: scope.userId, spaceId: scope.spaceId },
+      select: {
+        trigger: true,
+        task: { select: { delegatedFromRunId: true, prompt: true } },
+        sourceMessage: { select: { role: true, blocks: true } },
+        thread: { select: { externalConversationId: true } },
+      },
+    });
+    if (!origin) return "";
+    const blocks = Array.isArray(origin.sourceMessage?.blocks)
+      ? (origin.sourceMessage.blocks as MessageBlock[])
+      : [];
+    if (
+      hop > 0 &&
+      !origin.thread.externalConversationId &&
+      (origin.trigger === "user" || origin.trigger === "follow_up") &&
+      origin.sourceMessage?.role === "user" &&
+      !blocks.some(
+        (block) =>
+          block.kind === "channel_message" ||
+          block.kind === "bot_message_received" ||
+          block.kind === "handoff",
+      )
+    ) {
+      return blocks.flatMap((block) => (block.kind === "text" ? [block.text] : [])).join("\n");
+    }
+    if (hop > 0 && origin.trigger === "routine") return routineTaskInstructions(origin.task.prompt);
+    if (origin.trigger !== "follow_up" && origin.trigger !== "bot_message") return "";
+    id = origin.task.delegatedFromRunId;
+  }
+  return "";
+}
 
 /**
  * The connection a connector call reaches, for read trust. Installed APIs are told apart by their
@@ -125,7 +171,9 @@ export function createRunTrustLoaders(
         });
         return inboundRoutinePrompts(taskPrompt, routines).join("\n\n");
       }
-      return "";
+      if (messagingChannelRun || (run.trigger !== "follow_up" && run.trigger !== "bot_message"))
+        return "";
+      return delegatedOwnerWords(deps.prisma, run, runId);
     })();
     return ownerWordsPromise;
   };

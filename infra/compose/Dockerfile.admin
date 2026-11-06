@@ -20,6 +20,10 @@ COPY packages/adapters/src/auto-review.ts /app/packages/adapters/src/auto-review
 COPY packages/adapters/src/builtin-tool-bridge.ts /app/packages/adapters/src/builtin-tool-bridge.ts
 COPY packages/adapters/src/builtin-tools.ts /app/packages/adapters/src/builtin-tools.ts
 COPY packages/adapters/src/group-handoff.ts /app/packages/adapters/src/group-handoff.ts
+COPY packages/adapters/src/bot-messages.ts /app/packages/adapters/src/bot-messages.ts
+COPY packages/adapters/src/run-trust.ts /app/packages/adapters/src/run-trust.ts
+COPY packages/db/prisma /app/packages/db/prisma
+RUN pnpm --filter @rakazo/db generate
 COPY packages/adapters/src/pi-runtime-tools.ts /app/packages/adapters/src/pi-runtime-tools.ts
 COPY packages/adapters/src/pi-runtime.ts /app/packages/adapters/src/pi-runtime.ts
 COPY packages/adapters/src/pi-local-provider.ts /app/packages/adapters/src/pi-local-provider.ts

@@ -28,6 +28,8 @@ Slow local servers can explicitly set `MODEL_STREAM_TIMEOUT_MS` and `MODEL_STREA
 
 ## Verification
 
+Internal team handoffs and bot messages record their originating run on the task. New-site approval can recover the original owner's message through a bounded chain within the same owner and space. Peer prompts, external conversations and cross-owner connections never supply owner authorization. Legacy tasks without this provenance continue to ask; explicit approval rules and existing permission checks still apply.
+
 Offline checks cover strict assertions, signatures, lifetimes and CSP ancestry. Live synthetic protocol checks cover replay, forged assertions, tenant separation, disabled signup, HttpOnly cookies and expiration during activity. A separate real-browser check verifies entry through the existing host session, bot creation and chat persistence. These checks do not establish unattended 24-hour reliability or sales-content quality.
 
 ## Host activity

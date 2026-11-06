@@ -92,7 +92,9 @@ describe("group handoff ownership", () => {
     expect(messageCreate).not.toHaveBeenCalled();
   });
   it("marks a new ownership transfer as a follow-up with a chain hop", async () => {
-    const { deps, messageCreate, runCreate } = harness([{ kind: "text", text: "user request" }]);
+    const { deps, messageCreate, runCreate, tx } = harness([
+      { kind: "text", text: "user request" },
+    ]);
 
     await expect(
       handoffToGroupBot(deps as never, run, "group-1", {
@@ -100,6 +102,12 @@ describe("group handoff ownership", () => {
         message: "Do the distinct next stage",
       }),
     ).resolves.toMatchObject({ ok: true, botId: "bot-b" });
+
+    expect(tx.task.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ delegatedFromRunId: run.id }),
+      }),
+    );
 
     expect(messageCreate).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -115,6 +115,7 @@ describe("messaging another bot", () => {
         data: expect.objectContaining({
           botId: "bot-target",
           threadId: "thread-target",
+          delegatedFromRunId: run.id,
           prompt: expect.stringMatching(/not the user typing[\s\S]*untrusted peer content/),
         }),
       }),

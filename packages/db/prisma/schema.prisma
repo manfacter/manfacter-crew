@@ -957,6 +957,8 @@ model Task {
   thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
   userId    String
   prompt    String
+  // Backend-only delegation provenance; peer prompts never become owner authorization.
+  delegatedFromRunId String?
   status    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

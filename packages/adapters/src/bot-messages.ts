@@ -247,6 +247,7 @@ export async function messageBot(
             threadId: targetThreadId,
             userId: run.userId,
             prompt: wakePrompt,
+            delegatedFromRunId: run.id,
             status: "queued",
           },
         });

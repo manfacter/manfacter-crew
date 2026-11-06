@@ -180,6 +180,7 @@ export async function handoffToGroupBot(
         threadId: targetThreadId,
         userId: run.userId,
         prompt: text,
+        delegatedFromRunId: run.id,
         status: "queued",
       },
     });
