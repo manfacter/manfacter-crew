@@ -576,6 +576,10 @@
               {
                 "Name": "SIGNUPS_ENABLED",
                 "Value": "false"
+              },
+              {
+                "Name": "BOT_MESSAGE_MAX_HOPS",
+                "Value": "12"
               }
             ],
             "Secrets": [
@@ -724,6 +728,10 @@
               {
                 "Name": "LOG_FORMAT",
                 "Value": "json"
+              },
+              {
+                "Name": "BOT_MESSAGE_MAX_HOPS",
+                "Value": "12"
               }
             ],
             "Secrets": [
