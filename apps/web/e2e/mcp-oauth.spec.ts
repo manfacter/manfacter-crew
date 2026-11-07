@@ -5,7 +5,9 @@ import { MCP_OAUTH_CLIENT_REQUIRED } from "@rakazo/contracts";
 import { MCP_OAUTH_CHANNEL } from "../src/lib/mcp-oauth-channel";
 import { captureScreenshot, completeOnboarding, openIntegrationsAdd, signup } from "./helpers";
 
-test("closes the OAuth popup even when sign-in clears its window name", async ({ page }, testInfo) => {
+test("closes the OAuth popup even when sign-in clears its window name", async ({
+  page,
+}, testInfo) => {
   const stamp = Date.now();
   await signup(page, `mcp-oauth-${stamp}@rakazo.test`, "password12", "MCP OAuth");
   await completeOnboarding(page);

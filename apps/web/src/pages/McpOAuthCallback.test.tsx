@@ -23,30 +23,40 @@ beforeEach(() => {
   window.name = "";
   sessionStorage.clear();
   vi.spyOn(window, "close").mockImplementation(() => {});
-  vi.stubGlobal("BroadcastChannel", class {
-    postMessage() {}
-    close() {}
-  });
+  vi.stubGlobal(
+    "BroadcastChannel",
+    class {
+      postMessage() {}
+      close() {}
+    },
+  );
 });
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-it.each([true, false])("closes only the marked popup after successful authorization (popup=%s)", async (popup) => {
-  if (popup) sessionStorage.setItem(MCP_OAUTH_CHANNEL, "attempt-1");
-  const root = createRoot(document.createElement("div"));
-  try {
-    await act(async () => root.render(<McpOAuthCallbackPage />));
-    expect(mocks.complete).toHaveBeenCalledWith({ sessionId: "attempt-1", code: "fixture", state: "attempt-1" });
-    if (popup) {
-      expect(window.close).toHaveBeenCalledOnce();
-      expect(mocks.navigate).not.toHaveBeenCalled();
-    } else {
-      expect(window.close).not.toHaveBeenCalled();
-      expect(mocks.navigate).toHaveBeenCalledWith("/app?mcp_oauth=connected", { replace: true });
+it.each([true, false])(
+  "closes only the marked popup after successful authorization (popup=%s)",
+  async (popup) => {
+    if (popup) sessionStorage.setItem(MCP_OAUTH_CHANNEL, "attempt-1");
+    const root = createRoot(document.createElement("div"));
+    try {
+      await act(async () => root.render(<McpOAuthCallbackPage />));
+      expect(mocks.complete).toHaveBeenCalledWith({
+        sessionId: "attempt-1",
+        code: "fixture",
+        state: "attempt-1",
+      });
+      if (popup) {
+        expect(window.close).toHaveBeenCalledOnce();
+        expect(mocks.navigate).not.toHaveBeenCalled();
+      } else {
+        expect(window.close).not.toHaveBeenCalled();
+        expect(mocks.navigate).toHaveBeenCalledWith("/app?mcp_oauth=connected", { replace: true });
+      }
+    } finally {
+      await act(async () => root.unmount());
     }
-  } finally {
-    await act(async () => root.unmount());
-  }
-});
+  },
+);

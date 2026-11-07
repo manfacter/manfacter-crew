@@ -15,7 +15,9 @@ export function McpOAuthCallbackPage() {
   const [isPopup] = useState(() => {
     if (window.name === POPUP_NAME) return true;
     try {
-      return Boolean(params.get("state")) && sessionStorage.getItem(POPUP_NAME) === params.get("state");
+      return (
+        Boolean(params.get("state")) && sessionStorage.getItem(POPUP_NAME) === params.get("state")
+      );
     } catch {
       return false;
     }

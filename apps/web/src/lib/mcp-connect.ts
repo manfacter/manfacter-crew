@@ -25,11 +25,7 @@ export function mcpOAuthRedirectUri(): string {
 export async function connectMcpOauth(serverId: string): Promise<McpOauthResult> {
   const started = await rpc.mcp.oauth.begin({ serverId, redirectUri: mcpOAuthRedirectUri() });
   if (started.status !== "authorization_required") return started.status;
-  const popup = window.open(
-    "about:blank",
-    MCP_OAUTH_CHANNEL,
-    "popup,width=560,height=720",
-  );
+  const popup = window.open("about:blank", MCP_OAUTH_CHANNEL, "popup,width=560,height=720");
   if (!popup) {
     // Popup blocked: navigate this tab instead; the callback page returns to /app.
     window.location.assign(started.authorizationUrl);
