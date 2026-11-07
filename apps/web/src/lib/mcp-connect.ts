@@ -26,7 +26,7 @@ export async function connectMcpOauth(serverId: string): Promise<McpOauthResult>
   const started = await rpc.mcp.oauth.begin({ serverId, redirectUri: mcpOAuthRedirectUri() });
   if (started.status !== "authorization_required") return started.status;
   const popup = window.open(
-    started.authorizationUrl,
+    "about:blank",
     MCP_OAUTH_CHANNEL,
     "popup,width=560,height=720",
   );
@@ -35,6 +35,11 @@ export async function connectMcpOauth(serverId: string): Promise<McpOauthResult>
     window.location.assign(started.authorizationUrl);
     return "cancelled";
   }
+  // Login pages can clear window.name; session storage survives the return to this origin.
+  try {
+    popup.sessionStorage.setItem(MCP_OAUTH_CHANNEL, started.sessionId);
+  } catch {}
+  popup.location.replace(started.authorizationUrl);
   return await new Promise<McpOauthResult>((resolve) => {
     const channel = new BroadcastChannel(MCP_OAUTH_CHANNEL);
     let settled = false;

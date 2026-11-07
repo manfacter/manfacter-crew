@@ -6,15 +6,20 @@ import { MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
 
-// The window.open name set by the OAuth popup flow. Providers whose login
-// pages send COOP sever window.opener mid-flow, but the window name survives,
-// so it is the reliable "we are the popup" marker.
 const POPUP_NAME = MCP_OAUTH_CHANNEL;
 
 export function McpOAuthCallbackPage() {
   const { t } = useLingui();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const [isPopup] = useState(() => {
+    if (window.name === POPUP_NAME) return true;
+    try {
+      return Boolean(params.get("state")) && sessionStorage.getItem(POPUP_NAME) === params.get("state");
+    } catch {
+      return false;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const handledState = useRef<string | null>(null);
@@ -33,7 +38,7 @@ export function McpOAuthCallbackPage() {
         const channel = new BroadcastChannel(POPUP_NAME);
         channel.postMessage({ type: "mcp-oauth-complete" });
         channel.close();
-        if (window.name === POPUP_NAME) {
+        if (isPopup) {
           setDone(true);
           window.close();
           return;
@@ -41,8 +46,8 @@ export function McpOAuthCallbackPage() {
         navigate("/app?mcp_oauth=connected", { replace: true });
       })
       .catch((err: unknown) => setError(errorText(err, t`Could not complete OAuth`)));
-  }, [navigate, params, t]);
-  const showReturn = Boolean(error) && window.name !== POPUP_NAME;
+  }, [isPopup, navigate, params, t]);
+  const showReturn = Boolean(error) && !isPopup;
   return (
     <div className="grid min-h-screen place-items-center bg-background p-6 text-center">
       <div>
