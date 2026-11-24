@@ -7,6 +7,7 @@ import type {
   WebSearchHit,
   WebSearchRequest,
 } from "@rakazo/adapter-kit";
+import { Parser } from "htmlparser2";
 import { JSDOM } from "jsdom";
 import { clampMaxChars, clampMaxResults, clampOffset, pageWindow } from "./web-limits.js";
 import type { ResolveHostname } from "./web-ssrf.js";
@@ -40,7 +41,7 @@ export type KeylessHttpWebOptions = {
   userAgent?: string;
 };
 
-/** HTML search backend using DuckDuckGo’s public HTML form. One keyless option, not the interface. */
+/** HTML search backend using DuckDuckGoÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢s public HTML form. One keyless option, not the interface. */
 export const duckDuckGoHtmlSearchBackend: KeylessHtmlSearchBackend = {
   id: "duckduckgo-html",
   endpoint: DEFAULT_SEARCH_ENDPOINT,
@@ -125,9 +126,22 @@ export class KeylessHttpWebProvider implements WebProvider {
   }
 }
 
+function withHtmlDocument<T>(html: string, url: string, read: (document: Document) => T): T {
+  const dom = new JSDOM(html, { url });
+  try {
+    return read(dom.window.document);
+  } finally {
+    dom.window.close();
+  }
+}
+
 export function parseDuckDuckGoResults(html: string, maxResults: number): WebSearchHit[] {
-  const dom = new JSDOM(html, { url: DEFAULT_SEARCH_ENDPOINT });
-  const document = dom.window.document;
+  return withHtmlDocument(html, DEFAULT_SEARCH_ENDPOINT, (document) =>
+    collectSearchResults(document, maxResults),
+  );
+}
+
+function collectSearchResults(document: Document, maxResults: number): WebSearchHit[] {
   const results: WebSearchHit[] = [];
 
   for (const node of Array.from(document.querySelectorAll(".result"))) {
@@ -162,22 +176,78 @@ function unwrapDuckDuckGoUrl(rawUrl: string): string {
 }
 
 export function extractReadableText(html: string, url: string): { title: string; text: string } {
+  // Building a browser document and Readability's copies costs much more than the source HTML.
+  if (html.length > 256 * 1024) return extractLargePage(html);
   const readable = extractWithReadability(html, url);
   if (readable) return readable;
   return stripHtmlFallback(html);
 }
 
+const omittedTags = new Set(["head", "script", "style", "template", "noscript"]);
+const blockTags = new Set([
+  "article",
+  "br",
+  "dd",
+  "div",
+  "dt",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "li",
+  "main",
+  "p",
+  "pre",
+  "section",
+  "td",
+  "th",
+  "tr",
+]);
+
+function extractLargePage(html: string): { title: string; text: string } {
+  const surrounding: string[] = [];
+  const content: string[] = [];
+  const title: string[] = [];
+  let inTitle = false;
+  let omitted = 0;
+  let main = 0;
+  const append = (value: string) => (main ? content : surrounding).push(value);
+  new Parser({
+    onopentag(name) {
+      if (omittedTags.has(name)) omitted++;
+      if (name === "title") inTitle = true;
+      if (name === "main" || name === "article") main++;
+      if (!omitted && blockTags.has(name)) append(" ");
+    },
+    ontext(value) {
+      if (inTitle) title.push(value);
+      else if (!omitted) append(value);
+    },
+    onclosetag(name) {
+      if (!omitted && blockTags.has(name)) append(" ");
+      if (name === "main" || name === "article") main--;
+      if (name === "title") inTitle = false;
+      if (omittedTags.has(name)) omitted--;
+    },
+  }).end(html);
+  return {
+    title: normalizeWhitespace(title.join("")) || "Untitled",
+    text: normalizeArticleText(content.join("")) || normalizeArticleText(surrounding.join("")),
+  };
+}
+
 function extractWithReadability(html: string, url: string): { title: string; text: string } | null {
   try {
-    const dom = new JSDOM(html, { url });
-    const article = new Readability(dom.window.document).parse();
-    if (article?.textContent && article.textContent.length > 0) {
+    return withHtmlDocument(html, url, (document) => {
+      const article = new Readability(document).parse();
+      if (!article?.textContent) return null;
       return {
         title: article.title?.trim() || "Untitled",
         text: normalizeArticleText(article.textContent),
       };
-    }
-    return null;
+    });
   } catch {
     return null;
   }

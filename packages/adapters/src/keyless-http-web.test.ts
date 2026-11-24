@@ -220,6 +220,20 @@ describe("keyless HTTP web provider", () => {
     expect(extracted.text).toContain("just text here");
   });
 
+  it("reads a large catalogue to the end with decoded text and its title", () => {
+    const entries = "<p>Standard <b>parts</b> &amp; supplies</p>".repeat(7000);
+    const html = `<title>Tools &amp; parts</title><nav>Menu</nav><main>${entries}<p>Final item</p></main><footer>Footer</footer>`;
+    const page = extractReadableText(html, "https://example.test/");
+    expect(page.title).toBe("Tools & parts");
+    expect(page.text).toBe(`${"Standard parts & supplies ".repeat(7000)}Final item`);
+  });
+
+  it("keeps body text on a large page without an article", () => {
+    const css = ".body { color: blue; }".repeat(14000);
+    const html = `<style>${css}</style><p>Workshop<br>catalogue</p><template>hidden</template>`;
+    expect(extractReadableText(html, "https://example.test/").text).toBe("Workshop catalogue");
+  });
+
   it("keeps the HTML strip fallback's output", () => {
     const html = [
       "<frameset><TITLE lang=en>A  <b>page</b></title><style>p{}</style>",
