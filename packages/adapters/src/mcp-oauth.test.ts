@@ -657,6 +657,66 @@ describe("MCP OAuth", () => {
     ]);
   });
 
+  it("does not reinstall an older SDK refresh after the same provider serves a newer grant", async () => {
+    const auth = rotatingAuthServer();
+    const shared = sharedCredentials(reauthorizableMaterial());
+    const mcp = earlyRevokingMcpServer(auth.fetch);
+    const { provider } = await shared.startProcess(mcp.network);
+    const saveTokens = provider.saveTokens.bind(provider);
+    const wrappedFetch = provider.wrapFetch(mcp.network);
+    const sdkSave = vi.spyOn(provider, "saveTokens").mockImplementationOnce(async (first) => {
+      expect(first.refresh_token).toBe("refresh-1");
+      const second = await wrappedFetch("https://auth.example.test/token", {
+        method: "POST",
+        body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: "refresh-1" }),
+      });
+      expect(second.status).toBe(200);
+      const latest = (await second.json()) as typeof first;
+      expect(latest.refresh_token).toBe("refresh-2");
+      await saveTokens({ ...latest, issuer: first.issuer });
+      await saveTokens(first);
+    });
+    const session = new McpSession();
+
+    try {
+      await mcp.connect(provider, session);
+    } finally {
+      await session.close();
+    }
+
+    expect(sdkSave).toHaveBeenCalledTimes(1);
+    expect((await shared.stored()).oauth?.tokens?.refresh_token).toBe("refresh-2");
+    const next = await shared.startProcess(mcp.network);
+    await next.provider.replaceRejectedToken();
+    expect((await shared.stored()).oauth?.tokens?.refresh_token).toBe("refresh-3");
+    expect(auth.requests.map((request) => request.get("refresh_token"))).toEqual([
+      "old-refresh",
+      "refresh-1",
+      "refresh-2",
+    ]);
+  });
+
+  it("still persists tokens from an explicit code exchange after relaying a refresh", async () => {
+    const auth = rotatingAuthServer();
+    const shared = sharedCredentials(reauthorizableMaterial());
+    const { provider } = await shared.startProcess(auth.fetch);
+    const wrappedFetch = provider.wrapFetch(auth.fetch);
+    await wrappedFetch("https://auth.example.test/token", {
+      method: "POST",
+      body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: "old-refresh" }),
+    });
+
+    await provider.finishAuthorizationCode(() =>
+      provider.saveTokens({
+        access_token: "reauthorized",
+        refresh_token: "reauthorized-refresh",
+        token_type: "Bearer",
+      }),
+    );
+
+    expect((await shared.stored()).oauth?.tokens?.refresh_token).toBe("reauthorized-refresh");
+  });
+
   it("keeps the grant when the refresh after a 401 fails temporarily", async () => {
     const shared = sharedCredentials(reauthorizableMaterial());
     const mcp = earlyRevokingMcpServer(async () => {
