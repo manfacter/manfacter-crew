@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { isDeepStrictEqual } from "node:util";
 import type {
   OAuthClientProvider,
   OAuthDiscoveryState,
@@ -364,8 +363,8 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
   private readonly runtimeState = randomUUID();
   private persistQueue = Promise.resolve();
   private refreshing?: Promise<void>;
-  /** The stored grant `wrapFetch` last handed the SDK in place of a token response. */
-  private served?: OAuthTokens;
+  private relayedRefresh = false;
+  private acceptingAuthorizationCode = false;
   /** The refresh token storage held when this provider last read or wrote it. */
   private storedRefreshToken: string | null;
 
@@ -467,10 +466,9 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
         }
       }
       const tokens = this.material.oauth?.tokens;
-      this.served = tokens;
-      return tokens
-        ? Response.json(tokens)
-        : Response.json({ error: "invalid_grant" }, { status: 400 });
+      if (!tokens) return Response.json({ error: "invalid_grant" }, { status: 400 });
+      this.relayedRefresh = true;
+      return Response.json(tokens);
     };
   }
 
@@ -513,11 +511,20 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
     this.storedRefreshToken = grant.tokens?.refresh_token ?? null;
   }
 
+  async finishAuthorizationCode(exchange: () => Promise<void>): Promise<void> {
+    this.acceptingAuthorizationCode = true;
+    try {
+      await exchange();
+    } finally {
+      this.acceptingAuthorizationCode = false;
+    }
+  }
+
   async saveTokens(value: OAuthTokens): Promise<void> {
+    // The broker already persisted relayed refreshes under the lock. A delayed
+    // SDK acknowledgement can arrive after any number of newer refreshes.
+    if (this.relayedRefresh && !this.acceptingAuthorizationCode) return;
     const oauth = this.oauth();
-    // The locked refresh behind `wrapFetch` already stored this grant.
-    if (this.served && oauth.tokens === this.served && isDeepStrictEqual(value, this.served))
-      return;
     oauth.tokens = value;
     oauth.obtainedAt = Date.now();
     await this.persist(true);
@@ -1204,9 +1211,16 @@ export class McpOAuthBroker {
       this.allowPrivateEndpoint,
     );
     try {
-      if (pending.stdio)
-        await authorizeAtIssuer(pending.provider, pending.endpoint, networkFetch.fetch, input.code);
-      else {
+      await pending.provider.finishAuthorizationCode(async () => {
+        if (pending.stdio) {
+          await authorizeAtIssuer(
+            pending.provider,
+            pending.endpoint,
+            networkFetch.fetch,
+            input.code,
+          );
+          return;
+        }
         const transport = new StreamableHTTPClientTransport(new URL(pending.endpoint), {
           authProvider: pending.provider,
           fetch: networkFetch.fetch,
@@ -1216,7 +1230,7 @@ export class McpOAuthBroker {
         } finally {
           await transport.close().catch(() => undefined);
         }
-      }
+      });
     } catch (error) {
       throw networkFetch.publicError(error, "Could not complete MCP OAuth");
     } finally {
