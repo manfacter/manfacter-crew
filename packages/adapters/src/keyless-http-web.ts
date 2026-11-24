@@ -40,7 +40,7 @@ export type KeylessHttpWebOptions = {
   userAgent?: string;
 };
 
-/** HTML search backend using DuckDuckGo’s public HTML form. One keyless option, not the interface. */
+/** HTML search backend using DuckDuckGoâ€™s public HTML form. One keyless option, not the interface. */
 export const duckDuckGoHtmlSearchBackend: KeylessHtmlSearchBackend = {
   id: "duckduckgo-html",
   endpoint: DEFAULT_SEARCH_ENDPOINT,
@@ -125,9 +125,22 @@ export class KeylessHttpWebProvider implements WebProvider {
   }
 }
 
+function withHtmlDocument<T>(html: string, url: string, read: (document: Document) => T): T {
+  const dom = new JSDOM(html, { url });
+  try {
+    return read(dom.window.document);
+  } finally {
+    dom.window.close();
+  }
+}
+
 export function parseDuckDuckGoResults(html: string, maxResults: number): WebSearchHit[] {
-  const dom = new JSDOM(html, { url: DEFAULT_SEARCH_ENDPOINT });
-  const document = dom.window.document;
+  return withHtmlDocument(html, DEFAULT_SEARCH_ENDPOINT, (document) =>
+    collectSearchResults(document, maxResults),
+  );
+}
+
+function collectSearchResults(document: Document, maxResults: number): WebSearchHit[] {
   const results: WebSearchHit[] = [];
 
   for (const node of Array.from(document.querySelectorAll(".result"))) {
@@ -169,15 +182,14 @@ export function extractReadableText(html: string, url: string): { title: string;
 
 function extractWithReadability(html: string, url: string): { title: string; text: string } | null {
   try {
-    const dom = new JSDOM(html, { url });
-    const article = new Readability(dom.window.document).parse();
-    if (article?.textContent && article.textContent.length > 0) {
+    return withHtmlDocument(html, url, (document) => {
+      const article = new Readability(document).parse();
+      if (!article?.textContent) return null;
       return {
         title: article.title?.trim() || "Untitled",
         text: normalizeArticleText(article.textContent),
       };
-    }
-    return null;
+    });
   } catch {
     return null;
   }
