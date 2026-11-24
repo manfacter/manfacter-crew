@@ -620,6 +620,43 @@ describe("MCP OAuth", () => {
     expect((await shared.stored()).oauth?.tokens).toMatchObject({ refresh_token: "refresh-1" });
   });
 
+  it("does not write back an SDK refresh after a second process rotates the grant", async () => {
+    const auth = rotatingAuthServer();
+    const shared = sharedCredentials(reauthorizableMaterial());
+    const mcp = earlyRevokingMcpServer(auth.fetch);
+    const api = await shared.startProcess(mcp.network);
+    const saveTokens = api.provider.saveTokens.bind(api.provider);
+    const sdkSave = vi.spyOn(api.provider, "saveTokens").mockImplementationOnce(async (tokens) => {
+      const worker = await shared.startProcess(mcp.network);
+      await worker.provider.replaceRejectedToken();
+      await saveTokens(tokens);
+    });
+    const session = new McpSession();
+
+    try {
+      await mcp.connect(api.provider, session);
+    } finally {
+      await session.close();
+    }
+
+    expect(sdkSave).toHaveBeenCalledTimes(1);
+    expect(sdkSave.mock.calls[0]?.[0]).toMatchObject({
+      refresh_token: "refresh-1",
+      issuer: expect.any(String),
+    });
+    expect((await shared.stored()).oauth?.tokens).toMatchObject({
+      access_token: "access-2",
+      refresh_token: "refresh-2",
+    });
+    const next = await shared.startProcess(mcp.network);
+    await next.provider.replaceRejectedToken();
+    expect(auth.requests.map((entry) => entry.get("refresh_token"))).toEqual([
+      "old-refresh",
+      "refresh-1",
+      "refresh-2",
+    ]);
+  });
+
   it("keeps the grant when the refresh after a 401 fails temporarily", async () => {
     const shared = sharedCredentials(reauthorizableMaterial());
     const mcp = earlyRevokingMcpServer(async () => {

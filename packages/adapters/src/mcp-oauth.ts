@@ -514,10 +514,10 @@ export class StoredMcpOAuthProvider implements OAuthClientProvider {
   }
 
   async saveTokens(value: OAuthTokens): Promise<void> {
+    // The broker already stored this refresh under its credential lock. The SDK
+    // adds an issuer stamp, but its acknowledgement must not overwrite a newer grant.
+    if (this.served && isDeepStrictEqual(value, { ...this.served, issuer: value.issuer })) return;
     const oauth = this.oauth();
-    // The locked refresh behind `wrapFetch` already stored this grant.
-    if (this.served && oauth.tokens === this.served && isDeepStrictEqual(value, this.served))
-      return;
     oauth.tokens = value;
     oauth.obtainedAt = Date.now();
     await this.persist(true);
